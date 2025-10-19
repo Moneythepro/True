@@ -1,0 +1,235 @@
+<!-- ======================================================
+     File: chat.html  (TrueSocial — 1:1 Chat Page)
+     App: TrueSocial (by Money Jr.)
+     Theme: Premium Orange + White
+     Backend: Firebase Firestore
+====================================================== -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrueSocial — Chat</title>
+  <style>
+    :root {
+      --orange: #ff7a00;
+      --orange-dark: #e26500;
+      --white: #ffffff;
+      --muted: #777;
+      --radius: 14px;
+      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--white);
+      font-family: "Poppins", sans-serif;
+      color: #111;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: linear-gradient(90deg, #fff8f3, #fff);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      box-shadow: var(--shadow);
+    }
+    .chat-header img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .chat-header .info {
+      flex: 1;
+    }
+    .chat-header .info .name {
+      font-weight: 700;
+    }
+    .chat-header .info .status {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .chat-header .btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+    }
+    .msg {
+      max-width: 70%;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      word-wrap: break-word;
+      font-size: 15px;
+    }
+    .msg.them {
+      align-self: flex-start;
+      background: #f1f1f1;
+      border-bottom-left-radius: 4px;
+    }
+    .msg.me {
+      align-self: flex-end;
+      background: linear-gradient(180deg, #ffe6cc, #ffd4a3);
+      border-bottom-right-radius: 4px;
+    }
+    .meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    .tick {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    .tick.read { color: green; }
+
+    .chat-input {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-top: 1px solid rgba(0,0,0,0.05);
+      background: #fff;
+      gap: 8px;
+    }
+    .chat-input button {
+      border: none;
+      background: var(--orange);
+      color: white;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .chat-input .emoji-btn {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: var(--radius);
+      font-size: 15px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-header">
+    <img id="chatPfp" src="https://picsum.photos/seed/a/100" alt="User">
+    <div class="info">
+      <div class="name" id="chatName">Aisha Khan</div>
+      <div class="status" id="chatStatus">Online</div>
+    </div>
+    <button class="btn" id="viewProfile">ℹ️</button>
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="msg them">
+      Hey! excited for next week?
+      <div class="meta"><span>10:21</span></div>
+    </div>
+    <div class="msg me">
+      Yes — let's lock it in.
+      <div class="meta"><span>10:22</span><span class="tick">✓✓</span></div>
+    </div>
+  </div>
+
+  <div class="chat-input">
+    <button class="emoji-btn" id="emojiBtn">😊</button>
+    <input type="text" id="messageInput" placeholder="Type a message" />
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } 
+      from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
+      authDomain: "truesocial-94e80.firebaseapp.com",
+      projectId: "truesocial-94e80",
+      storageBucket: "truesocial-94e80.firebasestorage.app",
+      messagingSenderId: "993255311929",
+      appId: "1:993255311929:web:539d116fda9911960d5be8",
+      measurementId: "G-Y2YQ6DJJGS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const chatArea = document.getElementById("chatArea");
+    const input = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const emojiBtn = document.getElementById("emojiBtn");
+
+    const chatId = "demoChatId123"; // For demo; replace with real chat doc ID
+    const msgsRef = collection(db, "chats", chatId, "messages");
+
+    // Load messages live
+    const q = query(msgsRef, orderBy("timestamp"));
+    onSnapshot(q, (snapshot) => {
+      chatArea.innerHTML = "";
+      snapshot.forEach((doc) => {
+        const msg = doc.data();
+        const div = document.createElement("div");
+        div.className = "msg " + (msg.sender === "me" ? "me" : "them");
+        div.innerHTML = `
+          ${msg.text}
+          <div class="meta"><span>${msg.time || ""}</span>
+            ${msg.sender === "me" ? `<span class="tick ${msg.read ? 'read' : ''}">${msg.read ? '✓✓' : '✓'}</span>` : ""}
+          </div>`;
+        chatArea.appendChild(div);
+      });
+      chatArea.scrollTop = chatArea.scrollHeight;
+    });
+
+    // Send new message
+    sendBtn.addEventListener("click", async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      await addDoc(msgsRef, {
+        sender: "me",
+        text,
+        timestamp: serverTimestamp(),
+        read: false,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+      input.value = "";
+    });
+
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendBtn.click();
+    });
+
+    emojiBtn.addEventListener("click", () => {
+      alert("Emoji picker (demo)");
+    });
+
+    document.getElementById("viewProfile").addEventListener("click", () => {
+      location.href = "profile.html";
+    });
+  </script>
+</body>
+</html>
