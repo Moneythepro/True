@@ -1,171 +1,95 @@
-<!-- ======================================================
-     File: chat.html  (TrueSocial — 1:1 Chat Page)
-     App: TrueSocial (by Money Jr.)
-     Theme: Premium Orange + White
-     Backend: Firebase Firestore
-====================================================== -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrueSocial — Chat</title>
-  <style>
-    :root {
-      --orange: #ff7a00;
-      --orange-dark: #e26500;
-      --white: #ffffff;
-      --muted: #777;
-      --radius: 14px;
-      --shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--white);
-      font-family: "Poppins", sans-serif;
-      color: #111;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-    .chat-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      background: linear-gradient(90deg, #fff8f3, #fff);
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-      box-shadow: var(--shadow);
-    }
-    .chat-header img {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .chat-header .info {
-      flex: 1;
-    }
-    .chat-header .info .name {
-      font-weight: 700;
-    }
-    .chat-header .info .status {
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .chat-header .btn {
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    .chat-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      background: #fff;
-    }
-    .msg {
-      max-width: 70%;
-      padding: 10px 14px;
-      margin-bottom: 10px;
-      border-radius: var(--radius);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      word-wrap: break-word;
-      font-size: 15px;
-    }
-    .msg.them {
-      align-self: flex-start;
-      background: #f1f1f1;
-      border-bottom-left-radius: 4px;
-    }
-    .msg.me {
-      align-self: flex-end;
-      background: linear-gradient(180deg, #ffe6cc, #ffd4a3);
-      border-bottom-right-radius: 4px;
-    }
-    .meta {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 4px;
-      display: flex;
-      gap: 6px;
-      justify-content: flex-end;
-    }
-    .tick {
-      font-size: 12px;
-      opacity: 0.8;
-    }
-    .tick.read { color: green; }
 
-    .chat-input {
-      display: flex;
-      align-items: center;
-      padding: 10px;
-      border-top: 1px solid rgba(0,0,0,0.05);
-      background: #fff;
-      gap: 8px;
-    }
-    .chat-input button {
-      border: none;
-      background: var(--orange);
-      color: white;
-      padding: 8px 12px;
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .chat-input .emoji-btn {
-      background: none;
-      border: none;
-      font-size: 22px;
-      cursor: pointer;
-    }
-    .chat-input input {
-      flex: 1;
-      padding: 10px 14px;
-      border: 1px solid rgba(0,0,0,0.1);
-      border-radius: var(--radius);
-      font-size: 15px;
-      outline: none;
-    }
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/lucide.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
+  <style>
+    :root{--orange:#ff7a00;--muted:#666;}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Arial;background:#fff;color:#111}
+    .chat-wrap{display:flex;flex-direction:column;height:100vh;}
+    header{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #f5f5f5;background:white;position:sticky;top:0;z-index:20}
+    .pfp{width:48px;height:48px;border-radius:12px;background:#f2f2f2;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .pfp img{width:100%;height:100%;object-fit:cover}
+    .meta{flex:1}
+    .meta .name{font-weight:700}
+    .meta .status{font-size:13px;color:var(--muted)}
+    .messages{flex:1;padding:12px;overflow:auto;background:linear-gradient(180deg,#fff,#fff)}
+    .bubble{max-width:78%;padding:10px;border-radius:12px;margin-bottom:8px;box-shadow:0 6px 18px rgba(0,0,0,0.04);display:inline-block}
+    .bubble.sent{background:linear-gradient(90deg,#fff,#fff);margin-left:auto;border-radius:12px 12px 6px 12px}
+    .bubble.received{background:#fff;border:1px solid #f6f6f6;border-radius:12px 12px 12px 6px}
+    .metaSmall{font-size:11px;color:#888;margin-top:6px;display:flex;gap:6px;align-items:center}
+    .inputBar{display:flex;gap:8px;padding:10px;border-top:1px solid #f3f3f3;background:white}
+    .input{flex:1;padding:10px;border-radius:12px;border:1px solid #f0f0f0;display:flex;gap:8px;align-items:center}
+    .input input{border:none;outline:none;width:100%}
+    .btn{background:var(--orange);color:white;border:none;padding:10px;border-radius:12px}
+    .tick{font-size:12px;color:#a1a1a1}
+    .tick.read{color:green}
+    .profile-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:60;padding:12px}
+    .profile-modal.open{display:flex}
+    .profile-card{background:white;padding:12px;border-radius:12px;width:100%;max-width:420px}
+    .emoji-picker{position:absolute;bottom:64px;left:12px;padding:8px;border-radius:12px;background:white;box-shadow:0 10px 30px rgba(0,0,0,0.08)}
+    @media (orientation:landscape){ .messages{max-width:1100px;margin:0 auto} }
   </style>
 </head>
 <body>
-  <div class="chat-header">
-    <img id="chatPfp" src="https://picsum.photos/seed/a/100" alt="User">
-    <div class="info">
-      <div class="name" id="chatName">Aisha Khan</div>
-      <div class="status" id="chatStatus">Online</div>
+  <div class="chat-wrap">
+    <header>
+      <div class="pfp" id="chatPfp"><i data-lucide="user"></i></div>
+      <div class="meta">
+        <div class="name" id="chatName">Contact</div>
+        <div class="status" id="chatStatus">Last seen just now</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="openProfile" style="background:none;border:1px solid #f0f0f0;padding:8px;border-radius:10px"><i data-lucide="user"></i></button>
+      </div>
+    </header>
+
+    <div id="messages" class="messages" aria-live="polite">
+      <!-- messages appear here -->
+      <div class="muted" id="loadingMsgs">Loading messages...</div>
     </div>
-    <button class="btn" id="viewProfile">ℹ️</button>
+
+    <div class="inputBar">
+      <div class="input" style="position:relative">
+        <button id="emojiBtn" title="Emoji" style="border:none;background:none"><i data-lucide="smile"></i></button>
+        <input id="messageInput" placeholder="Type a message" />
+        <button id="attachBtn" title="Attach" style="border:none;background:none"><i data-lucide="paperclip"></i></button>
+        <div id="emojiPicker" class="emoji-picker" style="display:none">😀 😁 😂 😉 😊 😍 😎 😢 😡 🎉👍</div>
+      </div>
+      <button id="sendBtn" class="btn"><i data-lucide="send"></i></button>
+    </div>
   </div>
 
-  <div class="chat-area" id="chatArea">
-    <div class="msg them">
-      Hey! excited for next week?
-      <div class="meta"><span>10:21</span></div>
-    </div>
-    <div class="msg me">
-      Yes — let's lock it in.
-      <div class="meta"><span>10:22</span><span class="tick">✓✓</span></div>
+  <div id="profileModal" class="profile-modal" aria-hidden="true">
+    <div class="profile-card">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="width:68px;height:68px;border-radius:12px;background:#f6f6f6;overflow:hidden" id="pmPfp"><i data-lucide="user"></i></div>
+        <div>
+          <div id="pmName" style="font-weight:700"></div>
+          <div id="pmUser" class="muted">@username</div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div id="pmBio" style="color:#444"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+          <button id="closePM" class="btn" style="background:#fff;border:1px solid #eee;color:#111">Close</button>
+          <button id="viewProfileBtn" class="btn" style="background:var(--orange);color:#fff">Open Profile</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="chat-input">
-    <button class="emoji-btn" id="emojiBtn">😊</button>
-    <input type="text" id="messageInput" placeholder="Type a message" />
-    <button id="sendBtn">Send</button>
-  </div>
-
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } 
-      from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-
+  <script>
+    document.addEventListener("DOMContentLoaded", ()=> lucide.createIcons());
+    // Fire init
     const firebaseConfig = {
       apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
       authDomain: "truesocial-94e80.firebaseapp.com",
@@ -175,61 +99,161 @@
       appId: "1:993255311929:web:539d116fda9911960d5be8",
       measurementId: "G-Y2YQ6DJJGS"
     };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    // URL params: chatId & with
+    const params = new URLSearchParams(location.search);
+    let chatId = params.get('chatId');
+    let otherUid = params.get('with');
+    const messagesEl = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const emojiBtn = document.getElementById('emojiBtn');
+    const emojiPicker = document.getElementById('emojiPicker');
+    const attachBtn = document.getElementById('attachBtn');
+    const openProfile = document.getElementById('openProfile');
 
-    const chatArea = document.getElementById("chatArea");
-    const input = document.getElementById("messageInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const emojiBtn = document.getElementById("emojiBtn");
+    const profileModal = document.getElementById('profileModal');
+    const pmPfp = document.getElementById('pmPfp');
+    const pmName = document.getElementById('pmName');
+    const pmUser = document.getElementById('pmUser');
+    const pmBio = document.getElementById('pmBio');
+    const closePM = document.getElementById('closePM');
+    const viewProfileBtn = document.getElementById('viewProfileBtn');
 
-    const chatId = "demoChatId123"; // For demo; replace with real chat doc ID
-    const msgsRef = collection(db, "chats", chatId, "messages");
+    let currentUser = null;
+    let otherUser = null;
+    let messagesUnsub = null;
 
-    // Load messages live
-    const q = query(msgsRef, orderBy("timestamp"));
-    onSnapshot(q, (snapshot) => {
-      chatArea.innerHTML = "";
-      snapshot.forEach((doc) => {
-        const msg = doc.data();
-        const div = document.createElement("div");
-        div.className = "msg " + (msg.sender === "me" ? "me" : "them");
-        div.innerHTML = `
-          ${msg.text}
-          <div class="meta"><span>${msg.time || ""}</span>
-            ${msg.sender === "me" ? `<span class="tick ${msg.read ? 'read' : ''}">${msg.read ? '✓✓' : '✓'}</span>` : ""}
-          </div>`;
-        chatArea.appendChild(div);
+    auth.onAuthStateChanged(async user=>{
+      if(!user) location.href='login.html';
+      currentUser = user;
+      // if chatId not provided, create or find chat with otherUid
+      if(!chatId && otherUid){
+        // check for existing chat
+        const q = await db.collection('chats')
+          .where('participants','array-contains', currentUser.uid).get();
+        // find chat where otherUid is participant
+        let found=null;
+        q.forEach(d=>{
+          const p = d.data().participants || [];
+          if(p.includes(otherUid)) found = {id:d.id,data:d.data()};
+        });
+        if(found){ chatId = found.id; }
+        else{
+          // create chat doc
+          const doc = await db.collection('chats').add({
+            participants: [currentUser.uid, otherUid],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+            lastMessage: null
+          });
+          chatId = doc.id;
+        }
+      }
+      if(!chatId){ messagesEl.innerHTML = '<div class="muted">No chat selected.</div>'; return; }
+      // load other user data
+      if(!otherUid){
+        // infer other uid from chat doc
+        const chatDoc = await db.collection('chats').doc(chatId).get();
+        if(chatDoc.exists){
+          const participants = chatDoc.data().participants || [];
+          otherUid = participants.find(u=>u!==currentUser.uid);
+        } else {
+          messagesEl.innerHTML = '<div class="muted">Chat not found.</div>'; return;
+        }
+      }
+      const otherDoc = await db.collection('users').doc(otherUid).get();
+      otherUser = otherDoc.exists ? {...otherDoc.data(), uid: otherUid} : {name:'Unknown', username:'', pfp:''};
+      document.getElementById('chatName').textContent = otherUser.name || 'Unknown';
+      document.getElementById('chatStatus').textContent = otherUser.lastSeen ? 'Last seen: ' + (otherUser.lastSeen.toDate ? otherUser.lastSeen.toDate().toLocaleString() : otherUser.lastSeen) : 'Online';
+      if(otherUser.pfp) document.getElementById('chatPfp').innerHTML = `<img src="${otherUser.pfp}" alt="">`;
+      lucide.createIcons();
+
+      // start messages listener
+      startMessagesListener();
+    });
+
+    function startMessagesListener(){
+      if(messagesUnsub) messagesUnsub();
+      messagesEl.innerHTML = '<div class="muted">Loading messages...</div>';
+      const messagesRef = db.collection('chats').doc(chatId).collection('messages').orderBy('sentAt','asc');
+      messagesUnsub = messagesRef.onSnapshot(snap=>{
+        messagesEl.innerHTML = '';
+        snap.forEach(doc=>{
+          const m = doc.data();
+          const div = document.createElement('div');
+          div.className = 'bubble ' + (m.from===currentUser.uid ? 'sent' : 'received');
+          div.innerHTML = `<div>${escapeHtml(m.text || '')}</div><div class="metaSmall">${formatTime(m.sentAt || new Date())} <span class="tick ${m.read ? 'read' : ''}">${m.status==='read' ? '✓✓' : m.status==='delivered' ? '✓✓' : m.status==='sent' ? '✓' : ''}</span></div>`;
+          messagesEl.appendChild(div);
+        });
+        // scroll to bottom automatically
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        lucide.createIcons();
+      }, err=>{
+        messagesEl.innerHTML = '<div class="muted">Could not load messages.</div>';
       });
-      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    // Send message
+    sendBtn.addEventListener('click', async ()=>{
+      const text = messageInput.value.trim();
+      if(!text) return;
+      sendBtn.disabled=true;
+      // Optionally prevent messaging non-friends: we allow for MVP but can check
+      try{
+        const msgRef = db.collection('chats').doc(chatId).collection('messages').doc();
+        const msg = {
+          id: msgRef.id,
+          from: currentUser.uid,
+          to: otherUid,
+          text,
+          sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+          status: 'sent', // sent -> delivered -> read
+          read: false
+        };
+        await msgRef.set(msg);
+        // update chat doc lastMessage & lastUpdated
+        await db.collection('chats').doc(chatId).update({
+          lastMessage: msg,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        messageInput.value='';
+      }catch(err){
+        alert('Message failed: '+err.message);
+      }finally{ sendBtn.disabled=false; }
     });
 
-    // Send new message
-    sendBtn.addEventListener("click", async () => {
-      const text = input.value.trim();
-      if (!text) return;
-      await addDoc(msgsRef, {
-        sender: "me",
-        text,
-        timestamp: serverTimestamp(),
-        read: false,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-      input.value = "";
-    });
+    // Emoji toggle
+    emojiBtn.addEventListener('click', ()=>{ emojiPicker.style.display = emojiPicker.style.display==='none' ? 'block' : 'none'; });
 
-    input.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendBtn.click();
-    });
+    // Quick emoji click insertion
+    emojiPicker.addEventListener('click', (e)=>{ if(e.target.textContent){ messageInput.value += e.target.textContent; messageInput.focus(); } });
 
-    emojiBtn.addEventListener("click", () => {
-      alert("Emoji picker (demo)");
-    });
+    // Attachment placeholder
+    attachBtn.addEventListener('click', ()=>{ alert('Attachment not implemented in this MVP. Storage APIs can be used to upload and store files.'); });
 
-    document.getElementById("viewProfile").addEventListener("click", () => {
-      location.href = "profile.html";
+    // Profile modal open
+    openProfile.addEventListener('click', ()=>{
+      profileModal.classList.add('open'); profileModal.setAttribute('aria-hidden','false');
+      pmName.textContent = otherUser.name || '';
+      pmUser.textContent = '@' + (otherUser.username||'');
+      pmBio.textContent = otherUser.bio || '';
+      pmPfp.innerHTML = otherUser.pfp ? `<img src="${otherUser.pfp}" style="width:100%;height:100%;object-fit:cover" />` : `<i data-lucide="user"></i>`;
+      lucide.createIcons();
     });
+    closePM.addEventListener('click', ()=>{ profileModal.classList.remove('open'); profileModal.setAttribute('aria-hidden','true'); });
+    viewProfileBtn.addEventListener('click', ()=>{ location.href = 'profile.html?view=' + otherUser.uid; });
+
+    // Helpers
+    function formatTime(ts){
+      if(!ts) return '';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }
+    function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   </script>
 </body>
 </html>
