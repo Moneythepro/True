@@ -1,287 +1,87 @@
-<!--
-File: index.html — TrueSocial (Home / Chats + Inbox)
-Updated: Full, mobile-first, polished UI (light + dark), bottom sticky tab bar,
-separate Inbox modal, search modal, live chats & inbox from Firestore (v9 compat),
-Firebase config included (same as provided). Designed for mobile (max-width:420px).
-Place this file with your other html files (login.html, chat.html, profile.html, search.html).
--->
-
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>TrueSocial — Home</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>TrueSocial — Chats</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/lucide.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
   <style>
-    /* =========================
-       Variables & Reset
-       ========================= */
-    :root{
-      --orange: #ff7a00;
-      --orange-600:#e26500;
-      --bg: #ffffff;
-      --card: #ffffff;
-      --muted: #6b6b6b;
-      --text: #111;
-      --glass: rgba(255,255,255,0.7);
-      --radius: 14px;
-      --shadow: 0 8px 28px rgba(15,15,15,0.06);
-      --max-width: 420px;
-    }
-    [data-theme="dark"]{
-      --bg: #0f1720;
-      --card: #0b1220;
-      --muted: #9aa4b2;
-      --text: #e6eef6;
-      --glass: rgba(255,255,255,0.03);
-      --shadow: 0 8px 28px rgba(2,6,23,0.7);
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;color:var(--text);-webkit-font-smoothing:antialiased}
-    /* Mobile centered "app" */
-    .viewport{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
-    .app{
-      width:100%;
-      max-width:var(--max-width);
-      height:calc(100vh - 36px);
-      border-radius:18px;
-      background:linear-gradient(180deg,var(--card),rgba(255,255,255,0.02));
-      overflow:hidden;
-      display:flex;flex-direction:column;
-      box-shadow:var(--shadow);
-      border:1px solid rgba(255,255,255,0.03);
-    }
-
-    /* Header */
-    .header{
-      height:64px;padding:12px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(0,0,0,0.04);background:linear-gradient(90deg,rgba(255,250,245,0.8),transparent);
-    }
-    .brand{
-      display:flex;flex-direction:column;line-height:1;
-    }
-    .brand .title{font-weight:800;letter-spacing:-0.2px}
-    .brand .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
-    .header-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
-    .icon-btn{width:44px;height:44px;border-radius:10px;border:0;background:var(--glass);display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer}
-    .icon-btn:active{transform:translateY(1px)}
-    .badge{min-width:18px;height:18px;border-radius:999px;padding:0 6px;background:var(--orange-600);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
-
-    /* Search / content */
-    .content{padding:12px;flex:1;overflow:auto}
-    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-    .section-title h3{font-size:16px;margin:0}
-    .me-info{font-size:13px;color:var(--muted)}
-
-    /* Chat list */
-    .chats-list{display:flex;flex-direction:column;gap:10px}
-    .chat-card{
-      display:flex;gap:12px;align-items:center;padding:12px;border-radius:12px;background:var(--glass);cursor:pointer;border:1px solid rgba(0,0,0,0.03);
-    }
-    .chat-card:hover{transform:translateY(-1px)}
-    .chat-pfp{width:56px;height:56px;border-radius:12px;object-fit:cover;flex-shrink:0}
-    .chat-meta{flex:1;display:flex;flex-direction:column}
-    .chat-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-    .chat-name{font-weight:800}
-    .chat-preview{font-size:13px;color:var(--muted);margin-top:6px}
-    .chat-time{font-size:12px;color:var(--muted)}
-    .chat-unread{width:12px;height:12px;border-radius:50%;background:var(--orange);display:inline-block}
-
-    /* Empty states */
-    .empty{padding:18px;border-radius:12px;background:linear-gradient(180deg,rgba(0,0,0,0.01),transparent);text-align:center;color:var(--muted)}
-
-    /* Bottom navigation */
-    .bottom-nav{
-      height:72px;padding:8px 12px;border-top:1px solid rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:space-between;gap:6px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.02));
-    }
-    .tabs{display:flex;gap:6px;width:100%;justify-content:space-around}
-    .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:12px;padding:8px;border-radius:10px;cursor:pointer}
-    .tab.active{color:var(--orange);font-weight:700}
-    .tab .icon{font-size:18px}
-
-    /* Modals (centered) */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:80}
-    .modal{background:var(--card);padding:14px;border-radius:12px;width:92%;max-width:420px;border:1px solid rgba(255,255,255,0.03)}
-    .modal-head{display:flex;justify-content:space-between;align-items:center}
-    .modal-list{margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow:auto;padding-right:6px}
-
-    /* Inbox item */
-    .inbox-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border-radius:10px;background:var(--glass);}
-    .inbox-left{display:flex;gap:10px;align-items:center}
-    .inbox-pfp{width:48px;height:48px;border-radius:10px;object-fit:cover}
-    .inbox-actions{display:flex;gap:8px}
-
-    /* Search modal */
-    .search-row{display:flex;gap:8px;margin-top:10px}
-    .input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:var(--text)}
-    .btn{padding:8px 12px;border-radius:10px;border:0;background:var(--orange);color:#fff;cursor:pointer}
-
-    /* Profile small */
-    .small{font-size:13px;color:var(--muted)}
-
-    /* Utilities */
+    :root{--orange:#ff7a00;--bg:#fff;--muted:#666;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Roboto,Arial;background:linear-gradient(180deg,#fff,#fff);-webkit-font-smoothing:antialiased;color:#111}
+    header.top{position:sticky;top:0;background:white;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #faf4f4;z-index:20;}
+    .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--orange),#ff9a4d);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;}
+    .title{font-weight:700;font-size:16px;}
+    .searchShort{margin-left:auto;background:#fff;border:1px solid #f0f0f0;padding:8px 10px;border-radius:12px;display:flex;gap:8px;align-items:center;color:#888;font-size:14px;cursor:pointer;}
+    main{padding:12px;padding-bottom:84px;}
+    .card{background:white;border-radius:12px;padding:10px;margin-bottom:10px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,0.04);border:1px solid #fbf2ee;}
+    .pfp{width:60px;height:60px;border-radius:12px;background:#f6f6f6;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+    .pfp img{width:100%;height:100%;object-fit:cover}
+    .content{flex:1;display:flex;flex-direction:column}
+    .nameRow{display:flex;justify-content:space-between;align-items:center}
+    .name{font-weight:700;font-size:15px}
+    .lastMsg{color:var(--muted);font-size:13px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+    .badge{background:var(--orange);color:white;padding:4px 8px;border-radius:12px;font-size:12px;font-weight:700}
+    .empty{padding:30px;text-align:center;color:#bbb;}
+    footer.bottom-nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;align-items:center;padding:10px 6px;background:white;border-top:1px solid #f7f7f7;gap:6px;}
+    .nav-item{display:flex;flex-direction:column;align-items:center;font-size:12px;color:#666;text-decoration:none;padding:6px;border-radius:12px;}
+    .nav-item.active{color:var(--orange);background:linear-gradient(90deg,rgba(255,122,0,0.06),transparent);padding:8px;border-radius:12px;}
+    .top-actions{display:flex;gap:8px;margin-left:auto}
     .muted{color:var(--muted)}
-    .flex{display:flex}
-    .center{display:flex;align-items:center;justify-content:center}
-
-    /* Responsive/touch */
-    @media (max-width:420px){
-      .header{padding:10px}
-      .bottom-nav{height:72px}
+    /* skeleton */
+    .skeleton{height:12px;background:#f6f6f6;border-radius:8px;animation:shimmer 1.2s infinite linear;}
+    @keyframes shimmer{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+    @media (orientation:landscape){
+      main{max-width:1100px;margin:0 auto}
     }
   </style>
 </head>
 <body>
-  <div class="viewport" id="viewport" data-theme="light">
-    <div class="app" role="application" aria-label="TrueSocial">
-      <!-- Header -->
-      <header class="header">
-        <div style="display:flex;flex-direction:column">
-          <div class="brand">
-            <div class="title">TrueSocial</div>
-            <div class="subtitle">by Money Jr.</div>
-          </div>
-        </div>
-
-        <div class="header-actions" aria-hidden="false">
-          <!-- Inbox icon -->
-          <button class="icon-btn" id="openInbox" title="Inbox">
-            <!-- mail/notification SVG-ish -->
-            📥
-            <span id="inboxBadge" style="margin-left:6px" class="badge hidden">0</span>
-          </button>
-
-          <!-- Search -->
-          <button class="icon-btn" id="openSearch" title="Search">🔎</button>
-
-          <!-- Theme toggle -->
-          <button class="icon-btn" id="toggleTheme" title="Toggle theme">🌓</button>
-        </div>
-      </header>
-
-      <!-- Content -->
-      <main class="content" id="content">
-        <div class="section-title">
-          <h3>Chats</h3>
-          <div class="me-info" id="meInfo">Not signed in</div>
-        </div>
-
-        <div class="chats-list" id="chatsList" aria-live="polite">
-          <div class="empty">Loading chats…</div>
-        </div>
-      </main>
-
-      <!-- Bottom navigation (sticky) -->
-      <nav class="bottom-nav" role="navigation" aria-label="Bottom tabs">
-        <div class="tabs">
-          <div class="tab active" id="tabChats" data-tab="chats">
-            <div class="icon">💬</div>
-            <div>Chats</div>
-          </div>
-          <div class="tab" id="tabDiscover" data-tab="search">
-            <div class="icon">🔎</div>
-            <div>Discover</div>
-          </div>
-          <div class="tab" id="tabProfile" data-tab="profile">
-            <div class="icon">👤</div>
-            <div>Profile</div>
-          </div>
-        </div>
-      </nav>
+  <header class="top">
+    <div class="logo">TS</div>
+    <div>
+      <div class="title">TrueSocial</div>
+      <div class="muted" style="font-size:12px">Chats</div>
     </div>
-  </div>
+    <div class="searchShort" onclick="location.href='search.html'"><i data-lucide="search"></i> Search</div>
+  </header>
 
-  <!-- Inbox Modal -->
-  <div class="modal-backdrop" id="inboxModal" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="inboxTitle">
-      <div class="modal-head">
-        <strong id="inboxTitle">Inbox</strong>
-        <button class="icon-btn" id="closeInbox">✕</button>
-      </div>
-      <div id="inboxList" class="modal-list">
-        <div class="small muted">Loading…</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Search Modal -->
-  <div class="modal-backdrop" id="searchModal" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
-      <div class="modal-head">
-        <strong id="searchTitle">Search people</strong>
-        <button class="icon-btn" id="closeSearch">✕</button>
-      </div>
-
-      <div style="margin-top:10px">
-        <div class="search-row">
-          <input id="searchInput" class="input" placeholder="Name or username" aria-label="Search" />
-          <button id="searchBtn" class="btn">Search</button>
-        </div>
-
-        <div id="searchResults" class="modal-list" style="margin-top:12px">
-          <div class="small muted">Type a name to search</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tiny templates (for JS) -->
-  <template id="chatCardTpl">
-    <div class="chat-card" tabindex="0">
-      <img class="chat-pfp" src="" alt="pfp" />
-      <div class="chat-meta">
-        <div class="chat-row">
-          <div>
-            <div class="chat-name"></div>
-            <div class="chat-preview"></div>
-          </div>
-          <div style="text-align:right">
-            <div class="chat-time"></div>
-            <div style="margin-top:8px" class="chat-unread-wrap"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </template>
-
-  <template id="inboxItemTpl">
-    <div class="inbox-item">
-      <div class="inbox-left">
-        <img class="inbox-pfp" src="" alt="pfp" />
+  <main id="main">
+    <div id="inbox" class="card" style="align-items:center;justify-content:space-between;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <i data-lucide="inbox" style="width:36px;height:36px;color:var(--orange)"></i>
         <div>
-          <div class="inbox-name"></div>
-          <div class="small inbox-username"></div>
+          <div style="font-weight:700">Inbox & Friend Requests</div>
+          <div class="muted" style="font-size:13px">Tap to manage requests and notifications</div>
         </div>
-      </div>
-      <div class="inbox-actions">
-        <button class="btn accept">Accept</button>
-        <button class="btn secondary reject">Reject</button>
-      </div>
-    </div>
-  </template>
-
-  <template id="searchResultTpl">
-    <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer" class="search-result">
-      <img class="search-pfp" src="" style="width:48px;height:48px;border-radius:10px;object-fit:cover" />
-      <div style="flex:1">
-        <div class="search-name" style="font-weight:700"></div>
-        <div class="small search-username muted"></div>
       </div>
       <div>
-        <button class="btn view">View</button>
+        <button onclick="location.href='notifications.html'" class="btn" style="padding:8px 10px;border-radius:10px;border:1px solid #f0f0f0;background:#fff"><i data-lucide="bell"></i></button>
       </div>
     </div>
-  </template>
 
-  <!-- Firebase (compat libs for simplicity) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <div id="chatsList">
+      <!-- chat items get injected here -->
+      <div class="empty" id="loadingChats">Loading chats...</div>
+    </div>
+  </main>
+
+  <footer class="bottom-nav">
+    <a class="nav-item active" href="index.html"><i data-lucide="message-square"></i><span class="label">Chats</span></a>
+    <a class="nav-item" href="search.html"><i data-lucide="search"></i><span class="label">Search</span></a>
+    <a class="nav-item" href="profile.html"><i data-lucide="user"></i><span class="label">Profile</span></a>
+    <a class="nav-item" href="notifications.html"><i data-lucide="bell"></i><span class="label">Notifs</span></a>
+  </footer>
 
   <script>
-    /********************************************************
-     * Configuration
-     ********************************************************/
+    document.addEventListener("DOMContentLoaded", ()=> lucide.createIcons());
+    // Firebase init
     const firebaseConfig = {
       apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
       authDomain: "truesocial-94e80.firebaseapp.com",
@@ -294,388 +94,84 @@ Place this file with your other html files (login.html, chat.html, profile.html,
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const storage = firebase.storage();
 
-    /********************************************************
-     * UI refs
-     ********************************************************/
-    const viewport = document.getElementById('viewport');
-    const meInfo = document.getElementById('meInfo');
+    const main = document.getElementById('main');
     const chatsList = document.getElementById('chatsList');
-    const inboxModal = document.getElementById('inboxModal');
-    const inboxList = document.getElementById('inboxList');
-    const inboxBadge = document.getElementById('inboxBadge');
-    const openInboxBtn = document.getElementById('openInbox');
+    const loadingChats = document.getElementById('loadingChats');
 
-    const searchModal = document.getElementById('searchModal');
-    const openSearchBtn = document.getElementById('openSearch');
-    const searchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
-    const searchResults = document.getElementById('searchResults');
-
-    const toggleThemeBtn = document.getElementById('toggleTheme');
-
-    const tabChats = document.getElementById('tabChats');
-    const tabDiscover = document.getElementById('tabDiscover');
-    const tabProfile = document.getElementById('tabProfile');
-
-    const chatCardTpl = document.getElementById('chatCardTpl');
-    const inboxItemTpl = document.getElementById('inboxItemTpl');
-    const searchResultTpl = document.getElementById('searchResultTpl');
-
-    /********************************************************
-     * Small helpers
-     ********************************************************/
-    function q(selector, root=document){ return root.querySelector(selector) }
-    function elFromTpl(tpl){ return tpl.content.firstElementChild.cloneNode(true) }
-
-    function showModal(modalEl){ modalEl.style.display='flex'; modalEl.setAttribute('aria-hidden','false') }
-    function hideModal(modalEl){ modalEl.style.display='none'; modalEl.setAttribute('aria-hidden','true') }
-
-    function timeShort(ts){
-      if(!ts) return '';
-      try{
-        const d = ts.toDate ? ts.toDate() : new Date(ts);
-        return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-      }catch(e){ return '' }
-    }
-
-    /********************************************************
-     * Theme toggle (persists in localStorage)
-     ********************************************************/
-    const THEME_KEY = 'truesocial_theme_v1';
-    function applyTheme(theme){
-      viewport.setAttribute('data-theme', theme);
-      localStorage.setItem(THEME_KEY, theme);
-    }
-    toggleThemeBtn.addEventListener('click', ()=>{
-      const current = viewport.getAttribute('data-theme') || 'light';
-      applyTheme(current === 'light' ? 'dark' : 'light');
-    });
-    // init theme
-    (function(){
-      const t = localStorage.getItem(THEME_KEY) || 'light';
-      applyTheme(t);
-    })();
-
-    /********************************************************
-     * Auth flow: require login (redirect to login.html if not)
-     ********************************************************/
-    auth.onAuthStateChanged(async user=>{
-      if(!user){
-        // Not signed in — redirect to login page (keeps mobile flow)
-        location.href = 'login.html';
-        return;
-      }
-      // show small user info
-      const profileDoc = await db.collection('users').doc(user.uid).get().catch(()=>null);
-      const p = profileDoc && profileDoc.exists ? profileDoc.data() : null;
-      meInfo.textContent = p ? `${p.name || 'You'}` : (user.email || user.displayName || 'You');
-      // load UI data
-      startListeners(user.uid);
+    let currentUser = null;
+    // Listen for login and redirect if not
+    auth.onAuthStateChanged(user=>{
+      if(!user) location.href = 'login.html';
+      currentUser = user;
+      setupChatListener();
     });
 
-    /********************************************************
-     * Live listeners: chats and inbox
-     ********************************************************/
-    let chatsUnsub = null;
-    let inboxUnsub = null;
-
-    function startListeners(uid){
-      // chats (where participants array contains uid) sorted by lastUpdated
-      if(chatsUnsub) chatsUnsub();
-      chatsUnsub = db.collection('chats')
-        .where('participants','array-contains', uid)
-        .orderBy('lastUpdated','desc')
-        .onSnapshot(snapshot=>{
-          renderChats(snapshot.docs, uid).catch(console.error);
-        }, err => {
-          console.error('Chats snapshot error', err);
-          chatsList.innerHTML = `<div class="empty muted">Unable to load chats</div>`;
-        });
-
-      // friend requests to me (inbox)
-      if(inboxUnsub) inboxUnsub();
-      inboxUnsub = db.collection('friendRequests')
-        .where('to','==', uid)
-        .orderBy('createdAt','desc')
-        .onSnapshot(async snapshot=>{
-          renderInbox(snapshot.docs);
-        }, err=>{
-          console.error('Inbox snapshot error', err);
-          inboxList.innerHTML = `<div class="small muted">Unable to load requests</div>`;
-        });
-    }
-
-    async function renderChats(docs, meUid){
-      chatsList.innerHTML = '';
-      if(!docs.length){ chatsList.innerHTML = `<div class="empty muted">No chats yet — start by searching for a friend.</div>`; return; }
-
-      // create a small local cache for user info to avoid repetitive reads
-      const userCache = {};
-
-      for(const d of docs){
-        const chat = d.data();
-        const chatId = d.id;
-        // find the 'other' participant (v1 supports 1:1)
-        const otherUid = Array.isArray(chat.participants) ? chat.participants.find(x=>x !== meUid) : null;
-        let userInfo = { name: 'Unknown', pfp: '', username: '' };
-        if(otherUid){
-          if(userCache[otherUid]) userInfo = userCache[otherUid];
-          else {
-            try{
-              const uDoc = await db.collection('users').doc(otherUid).get();
-              if(uDoc.exists) userInfo = uDoc.data();
-            }catch(e){ /* ignore */ }
-            userCache[otherUid] = userInfo;
-          }
-        }
-
-        const card = elFromTpl(chatCardTpl);
-        card.dataset.chatId = chatId;
-        card.querySelector('.chat-pfp').src = userInfo.pfp || `https://picsum.photos/seed/${otherUid || 'avatar'}/120`;
-        card.querySelector('.chat-name').textContent = userInfo.name || 'Unknown';
-        card.querySelector('.chat-preview').textContent = chat.lastMessage || '';
-        card.querySelector('.chat-time').textContent = timeShort(chat.lastUpdated) || '';
-        const unreadWrap = card.querySelector('.chat-unread-wrap');
-        const unreadForMe = chat.unread && chat.unread[meUid];
-        unreadWrap.innerHTML = unreadForMe ? '<span class="chat-unread" aria-label="unread"></span>' : '';
-
-        // click to open chat (pass chatId)
-        card.addEventListener('click', ()=> {
-          // navigate to chat.html with query params
-          location.href = `chat.html?chat=${chatId}&other=${encodeURIComponent(otherUid||'')}`;
-        });
-
-        chatsList.appendChild(card);
-      }
-    }
-
-    async function renderInbox(docs){
-      inboxList.innerHTML = '';
-      const count = docs.length || 0;
-      // update header badge
-      if(count>0){
-        inboxBadge.classList.remove('hidden');
-        inboxBadge.textContent = String(count);
-      } else {
-        inboxBadge.classList.add('hidden');
-      }
-
-      if(!docs.length){
-        inboxList.innerHTML = `<div class="small muted">No pending requests</div>`;
-        return;
-      }
-
-      // render each request (most recent first)
-      for(const d of docs){
-        const req = d.data();
-        const fromUid = req.from;
-        let userInfo = { name: 'Unknown', pfp: '', username: '' };
-        try{
-          const uDoc = await db.collection('users').doc(fromUid).get();
-          if(uDoc.exists) userInfo = uDoc.data();
-        }catch(e){ /* ignore */ }
-
-        const item = elFromTpl(inboxItemTpl);
-        item.dataset.reqId = d.id;
-        item.querySelector('.inbox-pfp').src = userInfo.pfp || `https://picsum.photos/seed/${fromUid}/120`;
-        item.querySelector('.inbox-name').textContent = userInfo.name || 'Unknown';
-        item.querySelector('.inbox-username').textContent = userInfo.username ? `@${userInfo.username}` : '';
-
-        // Accept
-        item.querySelector('.accept').addEventListener('click', async (ev)=>{
-          ev.stopPropagation();
-          try{
-            // add to each other's friends array (simple v1)
-            const batch = db.batch();
-            const fromRef = db.collection('users').doc(fromUid);
-            const toRef = db.collection('users').doc(req.to);
-            batch.update(fromRef, { friends: firebase.firestore.FieldValue.arrayUnion(req.to) });
-            batch.update(toRef, { friends: firebase.firestore.FieldValue.arrayUnion(fromUid) });
-            batch.delete(db.collection('friendRequests').doc(d.id));
-            await batch.commit();
-            alert('Friend request accepted.');
-          }catch(err){ console.error(err); alert('Error accepting request'); }
-        });
-
-        // Reject
-        item.querySelector('.reject').addEventListener('click', async (ev)=>{
-          ev.stopPropagation();
-          try{
-            await db.collection('friendRequests').doc(d.id).delete();
-            alert('Friend request rejected.');
-          }catch(err){ console.error(err); alert('Error rejecting request'); }
-        });
-
-        inboxList.appendChild(item);
-      }
-    }
-
-    /********************************************************
-     * Inbox modal handlers
-     ********************************************************/
-    openInboxBtn.addEventListener('click', ()=> showModal(inboxModal));
-    document.getElementById('closeInbox').addEventListener('click', ()=> hideModal(inboxModal));
-    inboxModal.addEventListener('click', (e)=> { if(e.target === inboxModal) hideModal(inboxModal); });
-
-    /********************************************************
-     * Search modal handlers
-     ********************************************************/
-    openSearchBtn.addEventListener('click', ()=> {
-      showModal(searchModal);
-      searchInput.value = '';
-      searchResults.innerHTML = `<div class="small muted">Type a name to search</div>`;
-      setTimeout(()=> searchInput.focus(), 200);
-    });
-    document.getElementById('closeSearch').addEventListener('click', ()=> hideModal(searchModal));
-    searchModal.addEventListener('click', (e)=> { if(e.target === searchModal) hideModal(searchModal); });
-
-    async function performSearch(q){
-      q = (q||'').trim().toLowerCase();
-      searchResults.innerHTML = '';
-      if(!q) { searchResults.innerHTML = `<div class="small muted">Type a name to search</div>`; return; }
-
-      // Very simple approach for v1: fetch limited users then filter client-side
-      try{
-        const snap = await db.collection('users').limit(80).get();
-        const list = snap.docs.map(d=>({ uid: d.id, ...d.data() }))
-          .filter(u => (u.name||'').toLowerCase().includes(q) || (u.username||'').toLowerCase().includes(q));
-
-        if(!list.length){
-          searchResults.innerHTML = `<div class="small muted">No results</div>`;
-          return;
-        }
-
-        for(const u of list){
-          const node = elFromTpl(searchResultTpl);
-          node.querySelector('.search-pfp').src = u.pfp || `https://picsum.photos/seed/${u.uid}/80`;
-          node.querySelector('.search-name').textContent = u.name || 'Unknown';
-          node.querySelector('.search-username').textContent = u.username ? `@${u.username}` : '';
-          node.querySelector('.view').addEventListener('click', (ev)=>{
-            ev.stopPropagation();
-            openQuickProfile(u);
-          });
-          node.addEventListener('click', ()=> openQuickProfile(u));
-          searchResults.appendChild(node);
-        }
-      }catch(err){
-        console.error('Search error', err);
-        searchResults.innerHTML = `<div class="small muted">Search failed</div>`;
-      }
-    }
-
-    searchBtn.addEventListener('click', ()=> performSearch(searchInput.value));
-    searchInput.addEventListener('keydown', (e)=> { if(e.key === 'Enter') performSearch(searchInput.value); });
-
-    /********************************************************
-     * Quick profile / send friend request modal (reusable)
-     ********************************************************/
-    function openQuickProfile(userObj){
-      // reuse searchModal as backdrop? create ephemeral modal inside body
-      const backdrop = document.createElement('div');
-      backdrop.style.position='fixed';
-      backdrop.style.inset='0';
-      backdrop.style.display='flex';
-      backdrop.style.alignItems='center';
-      backdrop.style.justifyContent='center';
-      backdrop.style.background='rgba(0,0,0,0.45)';
-      backdrop.style.zIndex='100';
-      backdrop.innerHTML = `
-        <div style="background:var(--card);padding:14px;border-radius:12px;width:92%;max-width:420px;border:1px solid rgba(255,255,255,0.03)">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <strong>Profile</strong>
-            <button class="icon-btn closeQ">✕</button>
+    // Helper to create chat item
+    function renderChatItem(chatId, chatData, otherUser, lastMessage, unreadCount){
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.onclick = () => { location.href = `chat.html?chatId=${chatId}&with=${otherUser.uid}`; };
+      div.innerHTML = `
+        <div class="pfp">${ otherUser.pfp ? `<img src="${otherUser.pfp}" alt="">` : `<i data-lucide="user"></i>` }</div>
+        <div class="content">
+          <div class="nameRow">
+            <div class="name">${otherUser.name}</div>
+            <div style="font-size:12px;color:#999">${ lastMessage ? timeAgo(lastMessage.sentAt) : '' }</div>
           </div>
-          <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
-            <img src="${userObj.pfp || `https://picsum.photos/seed/${userObj.uid}/120`}" style="width:86px;height:86px;border-radius:12px;object-fit:cover"/>
-            <div style="flex:1">
-              <div style="font-weight:800">${userObj.name || 'Unknown'}</div>
-              <div class="small muted">@${userObj.username || ''}</div>
-              <div style="margin-top:10px" class="flex">
-                <button class="btn sendReq">Send Request</button>
-              </div>
-            </div>
+          <div class="lastMsg">
+            <div style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ lastMessage ? (lastMessage.text||'📎 Attachment') : 'No messages yet' }</div>
+            ${ unreadCount>0 ? `<div class="badge">${unreadCount}</div>` : '' }
           </div>
         </div>
       `;
-      document.body.appendChild(backdrop);
-      backdrop.querySelector('.closeQ').addEventListener('click', ()=> backdrop.remove());
-      backdrop.addEventListener('click', (e)=> { if(e.target === backdrop) backdrop.remove(); });
-
-      backdrop.querySelector('.sendReq').addEventListener('click', async ()=>{
-        try{
-          const me = auth.currentUser;
-          if(!me){ alert('Please sign in'); return; }
-          // prevent duplicate requests: simple check
-          const existing = await db.collection('friendRequests')
-            .where('from','==', me.uid)
-            .where('to','==', userObj.uid)
-            .get();
-          if(!existing.empty){ alert('Request already sent'); backdrop.remove(); return; }
-          await db.collection('friendRequests').add({
-            from: me.uid,
-            to: userObj.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          alert('Request sent');
-          backdrop.remove();
-          hideModal(searchModal);
-        }catch(err){
-          console.error('Send request error', err);
-          alert('Unable to send request');
-        }
-      });
+      lucide.createIcons();
+      return div;
     }
 
-    /********************************************************
-     * Tab navigation (simple)
-     ********************************************************/
-    function setActiveTab(tab){
-      [tabChats, tabDiscover, tabProfile].forEach(t=> t.classList.remove('active'));
-      if(tab === 'chats') tabChats.classList.add('active');
-      if(tab === 'search') tabDiscover.classList.add('active');
-      if(tab === 'profile') tabProfile.classList.add('active');
-
-      // navigate to pages (for v1 we simply link)
-      if(tab === 'search') location.href = 'search.html';
-      if(tab === 'profile') location.href = 'profile.html';
-      if(tab === 'chats') location.href = 'index.html';
+    // Real-time listener for chats collection (where participants array contains current uid)
+    let unsubscribeChats = null;
+    function setupChatListener(){
+      if(unsubscribeChats) unsubscribeChats();
+      unsubscribeChats = db.collection('chats').where('participants','array-contains', currentUser.uid)
+        .orderBy('lastUpdated','desc')
+        .onSnapshot(async snap=>{
+          if(snap.empty){ chatsList.innerHTML = `<div class="empty">No chats yet. Search people to start a conversation.</div>`; return; }
+          chatsList.innerHTML = '';
+          const batch = [];
+          snap.forEach(doc => batch.push({id:doc.id, data:doc.data()}));
+          // For each chat, fetch other user's info and last message + unread count
+          for(const chat of batch){
+            const participants = chat.data.participants || [];
+            const otherUid = participants.find(u=>u!==currentUser.uid);
+            // fetch other user doc
+            const userDoc = await db.collection('users').doc(otherUid).get();
+            const otherUser = userDoc.exists ? {...userDoc.data(), uid: otherUid} : {name:'Unknown', pfp:'', uid:otherUid};
+            // get last message (client may keep lastMessage field in chat doc)
+            const lastMessage = chat.data.lastMessage || null;
+            // unread count: count messages in chat/messages where to==currentUser && read==false
+            const unreadSnap = await db.collection('chats').doc(chat.id).collection('messages')
+              .where('to','==',currentUser.uid).where('read','==',false).get();
+            const unreadCount = unreadSnap.size;
+            const el = renderChatItem(chat.id, chat.data, otherUser, lastMessage, unreadCount);
+            chatsList.appendChild(el);
+          }
+        }, err=>{
+          console.error('Chat listener error', err);
+          chatsList.innerHTML = `<div class="empty">Could not load chats (network).</div>`;
+        });
     }
-    tabChats.addEventListener('click', ()=> setActiveTab('chats'));
-    tabDiscover.addEventListener('click', ()=> setActiveTab('search'));
-    tabProfile.addEventListener('click', ()=> setActiveTab('profile'));
 
-    /********************************************************
-     * Clean up on unload
-     ********************************************************/
-    window.addEventListener('beforeunload', ()=>{
-      if(typeof chatsUnsub === 'function') chatsUnsub();
-      if(typeof inboxUnsub === 'function') inboxUnsub();
-    });
-
-    /********************************************************
-     * Accessibility: allow ESC to close modals
-     ********************************************************/
-    document.addEventListener('keydown', (e)=>{
-      if(e.key === 'Escape'){
-        hideModal(inboxModal);
-        hideModal(searchModal);
-        const backdrops = document.querySelectorAll('div[style*="z-index: 100"]');
-        backdrops.forEach(b=> b.remove());
-      }
-    });
-
-    /********************************************************
-     * Notes:
-     * - This page expects your Firestore collections:
-     *   - users/{uid}  (fields: name, username, pfp, friends: array)
-     *   - chats/{chatId} (fields: participants: [uid1,uid2], lastMessage, lastUpdated: timestamp, unread: {uid:true})
-     *   - friendRequests/{id} (fields: from, to, createdAt)
-     *
-     * - Security rules should restrict access (see provided rules).
-     * - For performance & production, change the search logic to use indexed queries / Algolia or Cloud Functions.
-     ********************************************************/
+    // Utility: human-friendly time
+    function timeAgo(ts){
+      if(!ts) return '';
+      let date = ts.toDate ? ts.toDate() : new Date(ts);
+      const diff = Math.floor((Date.now()-date.getTime())/1000);
+      if(diff < 60) return `${diff}s`;
+      if(diff < 3600) return `${Math.floor(diff/60)}m`;
+      if(diff < 86400) return `${Math.floor(diff/3600)}h`;
+      return date.toLocaleDateString();
+    }
   </script>
 </body>
 </html>
