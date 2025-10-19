@@ -2,180 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrueSocial — Search</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/lucide.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
   <style>
-    :root {
-      --orange: #ff7a00;
-      --muted: #6b6b6b;
-      --bg: #f7f7f7;
-    }
-    * { box-sizing: border-box; }
-    body {
-      font-family: "Inter", system-ui, Segoe UI, Roboto, Arial;
-      margin: 0;
-      background: var(--bg);
-      color: #111;
-    }
-    .app {
-      max-width: 420px;
-      margin: 0 auto;
-      background: #fff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      border-radius: 16px 16px 0 0;
-      border: 1px solid rgba(0,0,0,0.06);
-      overflow: hidden;
-    }
-
-    /* HEADER */
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border-bottom: 1px solid rgba(0,0,0,.06);
-      background: #fff;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-    }
-    .dot {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      background: var(--orange);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-    }
-    .header .small { color: var(--muted); font-size: 13px; }
-    .header button {
-      margin-left: auto;
-      border: 0;
-      background: transparent;
-      cursor: pointer;
-      font-size: 20px;
-    }
-
-    /* SEARCH */
-    .container { padding: 16px; flex: 1; overflow-y: auto; }
-    .input {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(0,0,0,.1);
-      outline: none;
-      font-size: 15px;
-    }
-    .result {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(0,0,0,.05);
-      background: #fff;
-      margin-top: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      transition: background 0.2s;
-    }
-    .result:hover { background: #fff8f3; }
-    .pfp {
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      object-fit: cover;
-      flex-shrink: 0;
-    }
-    .btn {
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: none;
-      background: var(--orange);
-      color: #fff;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .btn.secondary {
-      background: transparent;
-      border: 1px solid var(--orange);
-      color: var(--orange);
-    }
-
-    /* FOOTER NAV */
-    .nav {
-      display: flex;
-      justify-content: space-around;
-      padding: 10px 0;
-      border-top: 1px solid rgba(0,0,0,.06);
-      background: #fff;
-    }
-    .nav-item {
-      font-size: 14px;
-      color: var(--muted);
-      cursor: pointer;
-    }
-    .nav-item.active {
-      color: var(--orange);
-      font-weight: 600;
-    }
-
-    /* MODAL PROFILE */
-    .overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-    }
-    .modal {
-      background: #fff;
-      border-radius: 16px;
-      padding: 20px;
-      width: 90%;
-      max-width: 360px;
-      text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      animation: pop 0.2s ease;
-    }
-    @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    :root{--orange:#ff7a00;--muted:#666;}
+    body{margin:0;font-family:Inter,system-ui,Roboto,Arial;background:#fff;color:#111}
+    header{position:sticky;top:0;padding:10px 14px;background:white;border-bottom:1px solid #f7f7f7;display:flex;gap:10px;align-items:center}
+    .back{display:flex;align-items:center;gap:8px;cursor:pointer}
+    .searchBox{flex:1;padding:8px;border-radius:12px;border:1px solid #f0f0f0;display:flex;align-items:center;gap:8px}
+    input.search{border:none;outline:none;font-size:15px}
+    main{padding:12px;padding-bottom:86px}
+    .user-card{display:flex;gap:12px;align-items:center;background:white;padding:10px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.04);margin-bottom:10px;border:1px solid #fbf2ee;cursor:pointer}
+    .pfp{width:64px;height:64px;border-radius:12px;background:#f6f6f6;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .pfp img{width:100%;height:100%;object-fit:cover}
+    .info{flex:1}
+    .name{font-weight:700}
+    .muted{color:var(--muted);font-size:13px}
+    .btn{padding:8px 10px;border-radius:10px;border:none}
+    .primary{background:linear-gradient(90deg,var(--orange),#ff944d);color:white;font-weight:700}
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.38);z-index:50;padding:12px}
+    .modal.open{display:flex}
+    .quickView{background:white;padding:12px;border-radius:12px;max-width:420px;width:100%}
+    .actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+    footer{position:fixed;left:0;right:0;bottom:0;padding:10px;background:white;border-top:1px solid #f7f7f7;display:flex;justify-content:space-around}
+    .nav-item{display:flex;flex-direction:column;align-items:center;font-size:12px;color:#666;text-decoration:none;padding:6px;border-radius:12px;}
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="header">
-      <div class="dot">TS</div>
-      <div>
-        <div style="font-weight:800">TrueSocial</div>
-        <div class="small">Search</div>
+  <header>
+    <div class="back" onclick="location.href='index.html'"><i data-lucide="arrow-left"></i><span class="muted">Back</span></div>
+    <div class="searchBox">
+      <i data-lucide="search"></i>
+      <input id="searchInput" class="search" placeholder="Search by name or username..." />
+      <button id="clearSearch" style="border:none;background:none" title="Clear"><i data-lucide="x"></i></button>
+    </div>
+  </header>
+
+  <main>
+    <div id="results">Type to search. (Filters out friends and yourself)</div>
+  </main>
+
+  <div id="quickModal" class="modal" aria-hidden="true">
+    <div class="quickView">
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="pfp" id="qPfp"><i data-lucide="user"></i></div>
+        <div style="flex:1">
+          <div id="qName" class="name">Name</div>
+          <div id="qUser" class="muted">@username</div>
+        </div>
       </div>
-      <button onclick="location.href='index.html'">🏠</button>
-    </div>
-
-    <div class="container">
-      <input id="q" class="input" placeholder="Search by name or username..." />
-      <div id="results"></div>
-    </div>
-
-    <div class="nav">
-      <div class="nav-item" onclick="location.href='index.html'">💬 Chats</div>
-      <div class="nav-item active">🔎 Search</div>
-      <div class="nav-item" onclick="location.href='profile.html'">👤 Profile</div>
+      <div id="qBio" style="margin-top:10px;color:#555">Bio</div>
+      <div class="actions">
+        <button id="sendFR" class="btn primary">Send Friend Request</button>
+        <button id="closeQ" class="btn">Close</button>
+      </div>
+      <div id="qMsg" class="muted" style="margin-top:8px"></div>
     </div>
   </div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <footer>
+    <a class="nav-item" href="index.html"><i data-lucide="message-square"></i><span class="label">Chats</span></a>
+    <a class="nav-item active" href="search.html"><i data-lucide="search"></i><span class="label">Search</span></a>
+    <a class="nav-item" href="profile.html"><i data-lucide="user"></i><span class="label">Profile</span></a>
+    <a class="nav-item" href="notifications.html"><i data-lucide="bell"></i><span class="label">Notifs</span></a>
+  </footer>
 
   <script>
+    document.addEventListener("DOMContentLoaded", ()=> lucide.createIcons());
+    // Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
       authDomain: "truesocial-94e80.firebaseapp.com",
@@ -189,93 +90,103 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const qInp = document.getElementById('q');
+    const searchInput = document.getElementById('searchInput');
     const results = document.getElementById('results');
+    const quickModal = document.getElementById('quickModal');
+    const qPfp = document.getElementById('qPfp');
+    const qName = document.getElementById('qName');
+    const qUser = document.getElementById('qUser');
+    const qBio = document.getElementById('qBio');
+    const sendFR = document.getElementById('sendFR');
+    const closeQ = document.getElementById('closeQ');
+    const qMsg = document.getElementById('qMsg');
+    let currentUser = null;
+    let currentFriends = [];
+    let selectedUser = null;
 
-    auth.onAuthStateChanged(user => {
-      if (!user) location.href = 'login.html';
+    auth.onAuthStateChanged(async u=>{
+      if(!u) location.href='login.html';
+      currentUser = u;
+      // load friend list
+      const friendsSnap = await db.collection('friends').doc(currentUser.uid).get();
+      if(friendsSnap.exists) currentFriends = friendsSnap.data().list || [];
     });
 
-    qInp.addEventListener('input', async () => {
-      const query = qInp.value.trim().toLowerCase();
-      results.innerHTML = '';
-      if (!query) return;
+    // Debounce search
+    let searchTimer = null;
+    searchInput.addEventListener('input', ()=>{
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(doSearch, 400);
+    });
+    document.getElementById('clearSearch').addEventListener('click', ()=>{ searchInput.value=''; results.innerHTML='Type to search. (Filters out friends and yourself)'; });
 
-      const snap = await db.collection('users').orderBy('username').limit(100).get();
-      const filtered = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .filter(u => (u.name || '').toLowerCase().includes(query) || (u.username || '').toLowerCase().includes(query));
-
-      if (!filtered.length) {
-        results.innerHTML = '<div class="small" style="margin-top:10px;text-align:center">No users found</div>';
-        return;
+    async function doSearch(){
+      const q = searchInput.value.trim().toLowerCase();
+      if(!q){ results.innerHTML='Type to search. (Filters out friends and yourself)'; return; }
+      results.innerHTML = '<div class="muted">Searching...</div>';
+      try{
+        // Search by username prefix and by name using simple queries
+        const byUsername = await db.collection('users').where('username','>=',q).where('username','<',q+'\uf8ff').limit(20).get();
+        const byName = await db.collection('users').where('name','>=',q).where('name','<',q+'\uf8ff').limit(20).get();
+        const map = new Map();
+        byUsername.forEach(d=>map.set(d.id,{id:d.id,data:d.data()}));
+        byName.forEach(d=>map.set(d.id,{id:d.id,data:d.data()}));
+        // remove self and friends
+        const arr = Array.from(map.values()).filter(u=>u.id !== currentUser.uid && !currentFriends.includes(u.id));
+        if(arr.length===0){ results.innerHTML = '<div class="empty muted">No users found (or all matches are already friends).</div>'; return; }
+        // Render results
+        results.innerHTML='';
+        arr.forEach(u=>{
+          const card = document.createElement('div'); card.className='user-card';
+          const pfp = `<div class="pfp">${ u.data.pfp ? `<img src="${u.data.pfp}" alt="">` : `<i data-lucide="user"></i>` }</div>`;
+          card.innerHTML = `${pfp}<div class="info"><div class="name">${u.data.name}</div><div class="muted">@${u.data.username}</div><div style="margin-top:6px" class="muted small">${u.data.bio||''}</div></div>`;
+          card.onclick = ()=> openQuick(u.id,u.data);
+          results.appendChild(card);
+          lucide.createIcons();
+        });
+      }catch(err){
+        results.innerHTML = `<div class="muted">Search failed: ${err.message}</div>`;
       }
+    }
 
-      filtered.forEach(u => {
-        const node = document.createElement('div');
-        node.className = 'result';
-        node.innerHTML = `
-          <img class="pfp" src="${u.pfp || 'https://picsum.photos/seed/'+u.id+'/80'}">
-          <div style="flex:1">
-            <div style="font-weight:600">${u.name || 'Unnamed'}</div>
-            <div class="small">@${u.username || 'unknown'}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <button class="btn" data-view="${u.id}">View</button>
-            <button class="btn secondary" data-request="${u.id}">Add Friend</button>
-          </div>
-        `;
-        node.querySelector('[data-view]').addEventListener('click', () => openModal(u));
-        node.querySelector('[data-request]').addEventListener('click', () => sendFriendRequest(u));
-        results.appendChild(node);
-      });
+    async function openQuick(uid,data){
+      selectedUser = {uid, ...data};
+      quickModal.classList.add('open'); quickModal.setAttribute('aria-hidden','false');
+      qName.textContent = data.name || 'Unknown';
+      qUser.textContent = '@' + (data.username || '');
+      qBio.textContent = data.bio || '';
+      qPfp.innerHTML = data.pfp ? `<img src="${data.pfp}" style="width:100%;height:100%;object-fit:cover" />` : `<i data-lucide="user"></i>`;
+      qMsg.textContent = '';
+      lucide.createIcons();
+    }
+
+    // Send friend request
+    sendFR.addEventListener('click', async ()=>{
+      if(!selectedUser) return;
+      sendFR.disabled=true; qMsg.textContent='Sending...';
+      try{
+        // prevent duplicate friend requests
+        const existing = await db.collection('friend_requests')
+          .where('from','==',currentUser.uid).where('to','==',selectedUser.uid).get();
+        if(!existing.empty){ qMsg.textContent = 'Request already sent.'; sendFR.disabled=false; return; }
+        // create request doc
+        await db.collection('friend_requests').add({
+          from: currentUser.uid,
+          to: selectedUser.uid,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        qMsg.textContent = 'Friend request sent.';
+      }catch(err){
+        qMsg.textContent = 'Error: ' + err.message;
+      }finally{ sendFR.disabled=false; }
     });
 
-    async function sendFriendRequest(targetUser) {
-      const me = auth.currentUser;
-      if (!me) return alert('Please log in first');
+    closeQ.addEventListener('click', ()=>{ quickModal.classList.remove('open'); quickModal.setAttribute('aria-hidden','true'); });
 
-      if (me.uid === targetUser.id) return alert('You cannot add yourself');
+    // close on Escape
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ quickModal.classList.remove('open'); quickModal.setAttribute('aria-hidden','true'); } });
 
-      // Check if already friends or pending
-      const check = await db.collection('friend_requests')
-        .where('fromUid', '==', me.uid)
-        .where('toUid', '==', targetUser.id)
-        .get();
-
-      if (!check.empty) return alert('Friend request already sent!');
-
-      await db.collection('friend_requests').add({
-        fromUid: me.uid,
-        toUid: targetUser.id,
-        status: 'pending',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      alert('Friend request sent ✅');
-    }
-
-    function openModal(user) {
-      const overlay = document.createElement('div');
-      overlay.className = 'overlay';
-      overlay.innerHTML = `
-        <div class="modal">
-          <img src="${user.pfp || 'https://picsum.photos/seed/'+user.id+'/120'}" style="width:120px;height:120px;border-radius:16px;object-fit:cover">
-          <h3 style="margin:10px 0 4px">${user.name || 'Unnamed'}</h3>
-          <div class="small">@${user.username || 'unknown'}</div>
-          <p style="margin-top:10px">${user.bio || 'No bio available'}</p>
-          <button class="btn" id="reqBtn">Send Friend Request</button>
-          <button class="btn secondary" id="closeBtn" style="margin-top:8px">Close</button>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-
-      overlay.querySelector('#closeBtn').addEventListener('click', () => overlay.remove());
-      overlay.querySelector('#reqBtn').addEventListener('click', async () => {
-        await sendFriendRequest(user);
-        overlay.remove();
-      });
-      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-    }
   </script>
 </body>
 </html>
