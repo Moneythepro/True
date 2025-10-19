@@ -1,0 +1,280 @@
+<!--
+File: index.html  (Home / Chats + Inbox)
+Standalone HTML + CSS + JS (uses same Firebase config)
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TrueSocial — Home</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--orange:#ff7a00;--muted:#6b6b6b}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:0;background:#f7f7f8;color:#111}
+    .app{max-width:420px;margin:18px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid rgba(0,0,0,.04);box-shadow:0 10px 30px rgba(0,0,0,.06)}
+    .header{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid rgba(0,0,0,.04);background:#fff}
+    .dot{width:44px;height:44px;border-radius:10px;background:var(--orange);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+    .container{padding:14px}
+    .search-btn{margin-left:auto;border:0;background:transparent;font-size:20px;cursor:pointer}
+    .chat-card{display:flex;gap:12px;padding:12px;border-radius:12px;align-items:center;cursor:pointer}
+    .chat-card:hover{background:rgba(0,0,0,.02)}
+    .pfp{width:52px;height:52px;border-radius:12px;object-fit:cover}
+    .meta{flex:1}
+    .name{font-weight:800}
+    .preview{color:var(--muted);font-size:13px}
+    .last{font-size:12px;color:var(--muted)}
+    .unread{background:var(--orange);width:10px;height:10px;border-radius:50%}
+    .section-title{margin-top:14px;margin-bottom:8px;font-weight:800}
+    .card{background:#fff;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.03)}
+    .bottom-nav{display:flex;justify-content:space-around;padding:12px;border-top:1px solid rgba(0,0,0,.04)}
+    .nav{display:flex;flex-direction:column;align-items:center;font-size:12px;color:var(--muted)}
+    .nav.active{color:var(--orange);font-weight:800}
+    .small{font-size:13px;color:var(--muted)}
+    .inbox-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px}
+    .btn{padding:8px 10px;border-radius:10px;border:0;background:var(--orange);color:#fff;cursor:pointer}
+    .btn.secondary{background:transparent;color:var(--orange);border:1px solid rgba(255,122,0,.12)}
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="header">
+      <div class="dot">TS</div>
+      <div>
+        <div style="font-weight:800">TrueSocial</div>
+        <div class="small">by Money Jr.</div>
+      </div>
+      <button class="search-btn" id="openSearch">🔎</button>
+    </div>
+
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="section-title">Chats</div>
+        <div id="meArea" class="small">Not signed in</div>
+      </div>
+
+      <div id="chatsList" style="margin-top:8px"></div>
+
+      <div class="section-title">Inbox (Requests)</div>
+      <div id="inbox" class="card" style="min-height:70px">Loading...</div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav active" onclick="location.href='index.html'">💬<div>Chats</div></div>
+      <div class="nav" onclick="location.href='search.html'">🔎<div>Search</div></div>
+      <div class="nav" onclick="location.href='profile.html'">👤<div>Profile</div></div>
+    </div>
+  </div>
+
+  <!-- Search modal -->
+  <div id="searchModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);align-items:center;justify-content:center">
+    <div style="background:#fff;padding:16px;border-radius:12px;max-width:420px;width:90%">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Search people</strong>
+        <button onclick="document.getElementById('searchModal').style.display='none'">✕</button>
+      </div>
+      <input id="searchInp" placeholder="Name or username" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.06);margin-top:10px" />
+      <div id="searchResults" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
+      authDomain: "truesocial-94e80.firebaseapp.com",
+      projectId: "truesocial-94e80",
+      storageBucket: "truesocial-94e80.firebasestorage.app",
+      messagingSenderId: "993255311929",
+      appId: "1:993255311929:web:539d116fda9911960d5be8",
+      measurementId: "G-Y2YQ6DJJGS"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // UI refs
+    const meArea = document.getElementById('meArea');
+    const chatsList = document.getElementById('chatsList');
+    const inboxEl = document.getElementById('inbox');
+    const searchModal = document.getElementById('searchModal');
+    const openSearch = document.getElementById('openSearch');
+    const searchInp = document.getElementById('searchInp');
+    const searchResults = document.getElementById('searchResults');
+
+    // Helpers
+    function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
+
+    // Auth state
+    auth.onAuthStateChanged(async user=>{
+      if(!user){
+        // redirect to login
+        location.href = 'login.html';
+        return;
+      }
+      meArea.textContent = 'Hi — ' + (user.email || user.uid);
+      loadChats(user.uid);
+      loadInbox(user.uid);
+    });
+
+    // Load chats: query 'chats' where participants array contains me
+    let chatsUnsub = null;
+    function loadChats(uid){
+      if(chatsUnsub) chatsUnsub();
+      chatsList.innerHTML = 'Loading chats...';
+      chatsUnsub = db.collection('chats')
+        .where('participants','array-contains', uid)
+        .orderBy('lastUpdated','desc')
+        .onSnapshot(async snap=>{
+          chatsList.innerHTML = '';
+          if(snap.empty) chatsList.innerHTML = '<div class="small">No chats yet</div>';
+          snap.forEach(async doc=>{
+            const data = doc.data();
+            // get the other participant
+            const otherUid = data.participants.find(x=>x!==uid);
+            const userDoc = await db.collection('users').doc(otherUid).get();
+            const userInfo = userDoc.exists ? userDoc.data() : {name:'Unknown', pfp:''};
+            const last = data.lastMessage || '';
+            const lastTime = data.lastUpdated ? new Date(data.lastUpdated.toDate()).toLocaleTimeString() : '';
+            const unread = (data.unread && data.unread[uid]) ? true : false;
+            const node = el(`
+              <div class="chat-card" data-chat="${doc.id}">
+                <img class="pfp" src="${userInfo.pfp||'https://picsum.photos/seed/'+otherUid+'/80'}" />
+                <div class="meta">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                      <div class="name">${userInfo.name||'User'}</div>
+                      <div class="preview">${last}</div>
+                    </div>
+                    <div class="last">${lastTime}</div>
+                  </div>
+                </div>
+                <div style="margin-left:8px">${unread?'<div class="unread" title=\"new\"></div>':''}</div>
+              </div>`);
+            node.addEventListener('click', ()=> location.href = `chat.html?chat=${doc.id}&other=${otherUid}`);
+            chatsList.appendChild(node);
+          });
+        });
+    }
+
+    // Inbox: friend requests stored in 'friendRequests' collection where to==me.uid
+    let inboxUnsub = null;
+    function loadInbox(uid){
+      if(inboxUnsub) inboxUnsub();
+      inboxEl.innerHTML = 'Loading...';
+      inboxUnsub = db.collection('friendRequests').where('to','==',uid).orderBy('createdAt','desc')
+        .onSnapshot(async snap=>{
+          inboxEl.innerHTML = '';
+          if(snap.empty){ inboxEl.innerHTML = '<div class="small">No requests</div>'; return; }
+          snap.forEach(async doc=>{
+            const data = doc.data();
+            const fromDoc = await db.collection('users').doc(data.from).get();
+            const fromInfo = fromDoc.exists? fromDoc.data() : {name:'Unknown'};
+            const node = el(`
+              <div class="inbox-item">
+                <div><strong>${fromInfo.name}</strong><div class="small">@${fromInfo.username||''}</div></div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn" data-accept="${doc.id}">Accept</button>
+                  <button class="btn secondary" data-reject="${doc.id}">Reject</button>
+                </div>
+              </div>
+            `);
+            inboxEl.appendChild(node);
+          });
+        });
+    }
+
+    // Accept/Reject handlers (event delegation)
+    inboxEl.addEventListener('click', async (e)=>{
+      const accept = e.target.dataset.accept;
+      const reject = e.target.dataset.reject;
+      const me = auth.currentUser;
+      if(!me) return alert('Not signed in');
+      if(accept){
+        const id = accept;
+        const req = await db.collection('friendRequests').doc(id).get();
+        if(!req.exists) return;
+        const data = req.data();
+        // Create friendship entry (simple approach: add uid to each other's friends array)
+        const batch = db.batch();
+        const a = db.collection('users').doc(data.from);
+        const b = db.collection('users').doc(data.to);
+        batch.update(a, { friends: firebase.firestore.FieldValue.arrayUnion(data.to) });
+        batch.update(b, { friends: firebase.firestore.FieldValue.arrayUnion(data.from) });
+        batch.delete(db.collection('friendRequests').doc(id));
+        await batch.commit();
+        alert('Accepted');
+      }
+      if(reject){
+        await db.collection('friendRequests').doc(reject).delete();
+        alert('Rejected');
+      }
+    });
+
+    // Search modal interactions
+    openSearch.addEventListener('click', ()=> { searchModal.style.display='flex'; searchInp.focus(); searchResults.innerHTML=''; });
+    searchInp.addEventListener('input', async ()=>{
+      const q = searchInp.value.trim().toLowerCase();
+      if(!q){ searchResults.innerHTML=''; return; }
+      // For simplicity: fetch small list of users and filter client-side (suitable for v1)
+      const snap = await db.collection('users').limit(50).get();
+      const arr = snap.docs.map(d=>d.data()).filter(u => (u.name||'').toLowerCase().includes(q) || (u.username||'').toLowerCase().includes(q));
+      searchResults.innerHTML='';
+      if(!arr.length) searchResults.innerHTML = '<div class="small">No results</div>';
+      arr.forEach(u=>{
+        const node = el(`<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer">
+          <img src="${u.pfp||'https://picsum.photos/seed/'+u.uid+'/80'}" style="width:48px;height:48px;border-radius:10px;object-fit:cover" />
+          <div style="flex:1">
+            <div style="font-weight:700">${u.name}</div>
+            <div class="small">@${u.username||''}</div>
+          </div>
+          <button class="btn" data-uid="${u.uid}">View</button>
+        </div>`);
+        node.querySelector('button').addEventListener('click', (ev)=>{
+          ev.stopPropagation();
+          openQuickView(u);
+        });
+        searchResults.appendChild(node);
+      });
+    });
+
+    // Quick view -> send friend request
+    function openQuickView(userObj){
+      const win = document.createElement('div');
+      win.style.position='fixed'; win.style.inset='0'; win.style.background='rgba(0,0,0,.35)'; win.style.display='flex'; win.style.alignItems='center'; win.style.justifyContent='center';
+      win.innerHTML = `<div style="background:#fff;padding:14px;border-radius:10px;max-width:420px;width:90%">
+        <div style="display:flex;justify-content:space-between"><strong>Profile</strong><button id="closeQ">✕</button></div>
+        <div style="display:flex;gap:12px;margin-top:12px;align-items:center">
+          <img src="${userObj.pfp||'https://picsum.photos/seed/'+userObj.uid+'/80'}" style="width:86px;height:86px;border-radius:12px;object-fit:cover" />
+          <div>
+            <div style="font-weight:800">${userObj.name}</div>
+            <div class="small">@${userObj.username||''}</div>
+            <div style="margin-top:10px"><button id="sendReq" class="btn">Send Request</button></div>
+          </div>
+        </div>
+      </div>`;
+      document.body.appendChild(win);
+      win.querySelector('#closeQ').addEventListener('click', ()=> win.remove());
+      win.querySelector('#sendReq').addEventListener('click', async ()=>{
+        const me = auth.currentUser;
+        if(!me) { alert('Login required'); return; }
+        // create friend request doc
+        await db.collection('friendRequests').add({
+          from: me.uid,
+          to: userObj.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert('Request sent');
+        win.remove();
+        searchModal.style.display='none';
+      });
+    }
+
+  </script>
+</body>
+</html>
