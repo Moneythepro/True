@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrueSocial — Chats</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/lucide.min.js"></script>
+  <!-- Lucide icons (single reliable include) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -19,7 +22,7 @@
     .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--orange),#ff9a4d);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;}
     .title{font-weight:700;font-size:16px;}
     .searchShort{margin-left:auto;background:#fff;border:1px solid #f0f0f0;padding:8px 10px;border-radius:12px;display:flex;gap:8px;align-items:center;color:#888;font-size:14px;cursor:pointer;}
-    main{padding:12px;padding-bottom:84px;}
+    main{padding:12px;padding-bottom:100px;}
     .card{background:white;border-radius:12px;padding:10px;margin-bottom:10px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,0.04);border:1px solid #fbf2ee;}
     .pfp{width:60px;height:60px;border-radius:12px;background:#f6f6f6;overflow:hidden;display:flex;align-items:center;justify-content:center;}
     .pfp img{width:100%;height:100%;object-fit:cover}
@@ -32,11 +35,8 @@
     footer.bottom-nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;align-items:center;padding:10px 6px;background:white;border-top:1px solid #f7f7f7;gap:6px;}
     .nav-item{display:flex;flex-direction:column;align-items:center;font-size:12px;color:#666;text-decoration:none;padding:6px;border-radius:12px;}
     .nav-item.active{color:var(--orange);background:linear-gradient(90deg,rgba(255,122,0,0.06),transparent);padding:8px;border-radius:12px;}
-    .top-actions{display:flex;gap:8px;margin-left:auto}
     .muted{color:var(--muted)}
-    /* skeleton */
-    .skeleton{height:12px;background:#f6f6f6;border-radius:8px;animation:shimmer 1.2s infinite linear;}
-    @keyframes shimmer{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+    .sectionTitle{font-weight:700;margin:8px 6px;font-size:13px;color:#333}
     @media (orientation:landscape){
       main{max-width:1100px;margin:0 auto}
     }
@@ -49,7 +49,7 @@
       <div class="title">TrueSocial</div>
       <div class="muted" style="font-size:12px">Chats</div>
     </div>
-    <div class="searchShort" onclick="location.href='search.html'"><i data-lucide="search"></i> Search</div>
+    <div class="searchShort" onclick="location.href='search.html'"><i data-lucide="search"></i>&nbsp;Search</div>
   </header>
 
   <main id="main">
@@ -66,9 +66,10 @@
       </div>
     </div>
 
+    <!-- Chats section -->
+    <div class="sectionTitle">Chats</div>
     <div id="chatsList">
-      <!-- chat items get injected here -->
-      <div class="empty" id="loadingChats">Loading chats...</div>
+      <div class="empty" id="loadingChats">Loading chats and friends...</div>
     </div>
   </main>
 
@@ -80,13 +81,15 @@
   </footer>
 
   <script>
+    // Initialize lucide icons once DOM ready
     document.addEventListener("DOMContentLoaded", ()=> lucide.createIcons());
-    // Firebase init
+
+    // ---------- Firebase init ----------
     const firebaseConfig = {
       apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
       authDomain: "truesocial-94e80.firebaseapp.com",
       projectId: "truesocial-94e80",
-      storageBucket: "truesocial-94e80.firebasestorage.app",
+      storageBucket: "truesocial-94e80.appspot.com", // corrected
       messagingSenderId: "993255311929",
       appId: "1:993255311929:web:539d116fda9911960d5be8",
       measurementId: "G-Y2YQ6DJJGS"
@@ -95,88 +98,332 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const main = document.getElementById('main');
+    // ---------- DOM refs ----------
     const chatsList = document.getElementById('chatsList');
     const loadingChats = document.getElementById('loadingChats');
 
     let currentUser = null;
-    // Listen for login and redirect if not
-    auth.onAuthStateChanged(user=>{
-      if(!user) location.href = 'login.html';
+    let unsubscribeChats = null;
+
+    // ---------- Auth state ----------
+    auth.onAuthStateChanged(async user => {
+      if (!user) return location.href = 'login.html';
       currentUser = user;
-      setupChatListener();
+      await loadAndRender(); // main entry: loads chats & friends
     });
 
-    // Helper to create chat item
-    function renderChatItem(chatId, chatData, otherUser, lastMessage, unreadCount){
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.onclick = () => { location.href = `chat.html?chatId=${chatId}&with=${otherUser.uid}`; };
-      div.innerHTML = `
-        <div class="pfp">${ otherUser.pfp ? `<img src="${otherUser.pfp}" alt="">` : `<i data-lucide="user"></i>` }</div>
-        <div class="content">
-          <div class="nameRow">
-            <div class="name">${otherUser.name}</div>
-            <div style="font-size:12px;color:#999">${ lastMessage ? timeAgo(lastMessage.sentAt) : '' }</div>
-          </div>
-          <div class="lastMsg">
-            <div style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ lastMessage ? (lastMessage.text||'📎 Attachment') : 'No messages yet' }</div>
-            ${ unreadCount>0 ? `<div class="badge">${unreadCount}</div>` : '' }
-          </div>
-        </div>
-      `;
-      lucide.createIcons();
-      return div;
+    // ---------- Main loader: loads chats and friends and merges them ----------
+    async function loadAndRender(){
+      chatsList.innerHTML = '<div class="empty">Loading chats and friends...</div>';
+      // set up real-time listener for chats (keeps chat list fresh)
+      setupChatListener();
+      // also load friends once (and show those without chat)
+      await loadFriendsAndMerge();
     }
 
-    // Real-time listener for chats collection (where participants array contains current uid)
-    let unsubscribeChats = null;
+    // ---------- Helper: retrieve friend IDs robustly ----------
+    // Supports multiple storage patterns:
+    // 1) users/{uid}.friends (array)
+    // 2) friends/{uid} doc with { list: [...] }
+    // 3) users/{uid}/friends subcollection (docs with ID = friendUid)
+    async function getFriendIds(uid){
+      const ids = new Set();
+      try{
+        const userDoc = await db.collection('users').doc(uid).get();
+        if(userDoc.exists){
+          const ud = userDoc.data();
+          if(Array.isArray(ud.friends)) ud.friends.forEach(x=>ids.add(x));
+        }
+        // check friends collection doc
+        const friendsDoc = await db.collection('friends').doc(uid).get();
+        if(friendsDoc.exists){
+          const fd = friendsDoc.data();
+          if(Array.isArray(fd.list)) fd.list.forEach(x=>ids.add(x));
+        }
+        // check subcollection users/{uid}/friends
+        const sub = await db.collection('users').doc(uid).collection('friends').get();
+        if(!sub.empty) sub.docs.forEach(d => ids.add(d.id));
+      }catch(err){
+        console.warn('Could not read friend lists:', err);
+      }
+      return Array.from(ids);
+    }
+
+    // ---------- Chat listener: real-time for chats involving current user ----------
     function setupChatListener(){
       if(unsubscribeChats) unsubscribeChats();
-      unsubscribeChats = db.collection('chats').where('participants','array-contains', currentUser.uid)
+      unsubscribeChats = db.collection('chats')
+        .where('participants','array-contains', currentUser.uid)
         .orderBy('lastUpdated','desc')
-        .onSnapshot(async snap=>{
-          if(snap.empty){ chatsList.innerHTML = `<div class="empty">No chats yet. Search people to start a conversation.</div>`; return; }
-          chatsList.innerHTML = '';
-          const batch = [];
-          snap.forEach(doc => batch.push({id:doc.id, data:doc.data()}));
-          // For each chat, fetch other user's info and last message + unread count
-          for(const chat of batch){
-            const participants = chat.data.participants || [];
-            const otherUid = participants.find(u=>u!==currentUser.uid);
-            // fetch other user doc
-            const userDoc = await db.collection('users').doc(otherUid).get();
-            const otherUser = userDoc.exists ? {...userDoc.data(), uid: otherUid} : {name:'Unknown', pfp:'', uid:otherUid};
-            // get last message (client may keep lastMessage field in chat doc)
-            const lastMessage = chat.data.lastMessage || null;
-            // unread count: count messages in chat/messages where to==currentUser && read==false
-            const unreadSnap = await db.collection('chats').doc(chat.id).collection('messages')
-              .where('to','==',currentUser.uid).where('read','==',false).get();
-            const unreadCount = unreadSnap.size;
-            const el = renderChatItem(chat.id, chat.data, otherUser, lastMessage, unreadCount);
-            chatsList.appendChild(el);
+        .onSnapshot(async snap => {
+          try{
+            // Build a map of chats by otherUid
+            const chatMap = new Map();
+            const chatDocs = [];
+            snap.forEach(doc => chatDocs.push({ id: doc.id, data: doc.data() }));
+            // Preload other users for all chats in parallel
+            const otherUids = [];
+            chatDocs.forEach(c=>{
+              const p = c.data.participants || [];
+              const other = p.find(x => x !== currentUser.uid);
+              if(other) otherUids.push(other);
+            });
+            // unique otherUids
+            const uniqueOthers = [...new Set(otherUids)];
+            const userPromises = uniqueOthers.map(uid => db.collection('users').doc(uid).get().catch(()=>null));
+            const userDocs = await Promise.all(userPromises);
+            const userMap = new Map();
+            userDocs.forEach((d, idx) => {
+              const uid = uniqueOthers[idx];
+              if(d && d.exists) userMap.set(uid, {...d.data(), uid});
+              else userMap.set(uid, { uid, name: 'Unknown', pfp: '' });
+            });
+
+            // For each chat doc, compute lastMessage (fallback to fetching the latest message if needed) and unread count
+            for(const chat of chatDocs){
+              const otherUid = (chat.data.participants || []).find(x=>x!==currentUser.uid);
+              const otherUser = userMap.get(otherUid) || { uid: otherUid, name:'Unknown', pfp:'' };
+              let lastMessage = chat.data.lastMessage || null;
+
+              // If lastMessage not present, attempt to read latest message in subcollection (small cost)
+              if(!lastMessage){
+                try{
+                  const msgs = await db.collection('chats').doc(chat.id).collection('messages')
+                    .orderBy('sentAt','desc').limit(1).get();
+                  if(!msgs.empty) lastMessage = msgs.docs[0].data();
+                }catch(e){
+                  // ignore; will show "No messages yet"
+                }
+              }
+
+              // unread count
+              let unreadCount = 0;
+              try{
+                const unreadSnap = await db.collection('chats').doc(chat.id).collection('messages')
+                  .where('to','==',currentUser.uid).where('read','==',false).get();
+                unreadCount = unreadSnap.size;
+              }catch(e){
+                console.warn('Unread count failed for chat', chat.id, e);
+              }
+
+              chatMap.set(otherUid, {
+                chatId: chat.id,
+                chatData: chat.data,
+                otherUser,
+                lastMessage,
+                unreadCount
+              });
+            }
+
+            // Render combined view: Chats first, then friends-without-chats
+            await renderCombined(chatMap);
+          }catch(err){
+            console.error('Error in chat snapshot handler', err);
+            if(err && err.code === 'permission-denied'){
+              chatsList.innerHTML = `<div class="empty">⚠️ Missing Firestore permissions. Please check rules.</div>`;
+            } else {
+              chatsList.innerHTML = `<div class="empty">Could not load chats. Try reloading.</div>`;
+            }
           }
         }, err=>{
           console.error('Chat listener error', err);
-          chatsList.innerHTML = `<div class="empty">Could not load chats (network).</div>`;
+          if(err && err.code === 'permission-denied'){
+            chatsList.innerHTML = `<div class="empty">⚠️ Missing Firestore permissions. Please check rules.</div>`;
+          } else {
+            chatsList.innerHTML = `<div class="empty">Could not load chats (network).</div>`;
+          }
         });
     }
 
-    // Utility: human-friendly time
+    // ---------- Load friends and merge with chats (shows friends without chat) ----------
+    async function loadFriendsAndMerge(){
+      try{
+        const friendIds = await getFriendIds(currentUser.uid);
+        // call renderCombined triggers again from chat snapshot; but ensure friends-only case handled
+        // We'll create a minimal map with only friends if chat snapshot hasn't fired yet
+        // But primary rendering is done in renderCombined(chatMap) called by snapshot
+        // If snapshot hasn't populated anything yet, still show friends
+        // We'll call renderCombined with an empty chatMap so friends show
+        const initialMap = new Map();
+        return renderCombined(initialMap, friendIds);
+      }catch(err){
+        console.warn('Failed to load friends', err);
+      }
+    }
+
+    // ---------- Render combined chats and friends ----------
+    // chatMap: Map keyed by otherUid -> chat info (if present)
+    // friendIdsOptional: array of friend uids to include even if no chatMap entries exist
+    async function renderCombined(chatMap, friendIdsOptional = null){
+      // Get friend IDs if not supplied
+      let friendIds = friendIdsOptional;
+      if(!friendIds) friendIds = await getFriendIds(currentUser.uid);
+
+      // Build set of other UIDs that appear in chatsMap
+      const chatOtherUids = Array.from(chatMap.keys());
+      // Merge unique friend ids excluding current user
+      const allFriendUids = [...new Set(friendIds.filter(id => id && id !== currentUser.uid))];
+
+      // We'll render a sorted list:
+      // 1) Active chats ordered by lastUpdated (already ordered by snapshot)
+      // 2) Then friends who have no chat (alphabetical)
+
+      // Start fresh
+      chatsList.innerHTML = '';
+
+      // Render active chats from chatMap in insertion order
+      if(chatOtherUids.length > 0){
+        for(const otherUid of chatOtherUids){
+          const info = chatMap.get(otherUid);
+          if(!info) continue;
+          chatsList.appendChild(renderChatCard(info.chatId, info.otherUser, info.lastMessage, info.unreadCount));
+        }
+      } else {
+        chatsList.appendChild(document.createElement('div')); // fallback spacer
+      }
+
+      // Now find friends without chat
+      const friendsWithoutChat = allFriendUids.filter(id => !chatMap.has(id));
+
+      if(friendsWithoutChat.length > 0){
+        // Title for friends without chat
+        const friendsTitle = document.createElement('div');
+        friendsTitle.className = 'sectionTitle';
+        friendsTitle.textContent = 'Friends';
+        chatsList.appendChild(friendsTitle);
+
+        // Fetch friend user docs in parallel in small batches (avoid giant fan-out)
+        const batchSize = 10;
+        for(let i=0; i<friendsWithoutChat.length; i+=batchSize){
+          const slice = friendsWithoutChat.slice(i, i+batchSize);
+          const userDocs = await Promise.all(slice.map(uid => db.collection('users').doc(uid).get().catch(()=>null)));
+          for(let j=0;j<userDocs.length;j++){
+            const d = userDocs[j];
+            const uid = slice[j];
+            const ud = d && d.exists ? {...d.data(), uid} : { name: 'Unknown', pfp: '', uid };
+            chatsList.appendChild(renderFriendCard(uid, ud));
+          }
+        }
+      }
+
+      // If nothing at all: show friendly empty
+      if(chatsList.children.length === 0){
+        chatsList.innerHTML = `<div class="empty">No chats or friends yet. Use Search to add friends and start chatting.</div>`;
+      }
+
+      // Re-init lucide icons for any newly added icons
+      lucide.createIcons();
+    }
+
+    // ---------- UI card renderers ----------
+
+    // Chat card (existing chat)
+    function renderChatCard(chatId, otherUser, lastMessage, unreadCount){
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.onclick = () => location.href = `chat.html?chatId=${chatId}&with=${otherUser.uid}`;
+      const pfpHTML = otherUser.pfp ? `<img src="${otherUser.pfp}" alt="">` : `<i data-lucide="user"></i>`;
+      const lastText = lastMessage ? (lastMessage.text || (lastMessage.type === 'media' ? '📎 Attachment' : 'No message')) : 'No messages yet';
+      // Show readable timestamp if available
+      const timeText = lastMessage && lastMessage.sentAt ? timeAgo(lastMessage.sentAt) : '';
+      const unreadHTML = unreadCount > 0 ? `<div class="badge">${unreadCount}</div>` : '';
+      div.innerHTML = `
+        <div class="pfp">${pfpHTML}</div>
+        <div class="content">
+          <div class="nameRow">
+            <div class="name">${escapeHtml(otherUser.name || 'Unknown')}</div>
+            <div style="font-size:12px;color:#999">${timeText}</div>
+          </div>
+          <div class="lastMsg">
+            <div style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(lastText)}</div>
+            ${unreadHTML}
+          </div>
+        </div>
+      `;
+      return div;
+    }
+
+    // Friend card (no chat yet)
+    function renderFriendCard(uid, userData){
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.onclick = async () => {
+        // Create chat then navigate
+        try{
+          const chatRef = await createOrGetChat(uid);
+          location.href = `chat.html?chatId=${chatRef.id}&with=${uid}`;
+        }catch(err){
+          alert('Could not create chat: ' + (err.message || err));
+        }
+      };
+      const pfpHTML = userData.pfp ? `<img src="${userData.pfp}" alt="">` : `<i data-lucide="user"></i>`;
+      div.innerHTML = `
+        <div class="pfp">${pfpHTML}</div>
+        <div class="content">
+          <div class="nameRow">
+            <div class="name">${escapeHtml(userData.name || 'Unknown')}</div>
+            <div style="font-size:12px;color:#999">Friend</div>
+          </div>
+          <div class="lastMsg">
+            <div style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tap to start a conversation</div>
+          </div>
+        </div>
+      `;
+      return div;
+    }
+
+    // ---------- Utilities ----------
+
+    // Create chat between currentUser and otherUid if not exist. Returns chatRef.
+    async function createOrGetChat(otherUid){
+      // try to find existing chat with participants exactly currentUser & otherUid
+      const q = await db.collection('chats')
+        .where('participants', 'array-contains', currentUser.uid)
+        .get();
+
+      let found = null;
+      q.forEach(doc => {
+        const p = doc.data().participants || [];
+        if(p.length === 2 && p.includes(otherUid) && p.includes(currentUser.uid)) found = { id: doc.id, data: doc.data() };
+      });
+      if(found) return { id: found.id, data: found.data };
+
+      // not found -> create
+      const newChat = {
+        participants: [currentUser.uid, otherUid],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        lastMessage: null
+      };
+      const chatRef = await db.collection('chats').add(newChat);
+      return { id: chatRef.id, data: newChat };
+    }
+
+    // Time formatting helper (human friendly)
     function timeAgo(ts){
       if(!ts) return '';
-      let date = ts.toDate ? ts.toDate() : new Date(ts);
+      const date = ts.toDate ? ts.toDate() : new Date(ts);
       const diff = Math.floor((Date.now()-date.getTime())/1000);
       if(diff < 60) return `${diff}s`;
       if(diff < 3600) return `${Math.floor(diff/60)}m`;
       if(diff < 86400) return `${Math.floor(diff/3600)}h`;
       return date.toLocaleDateString();
     }
+
+    // Escape text for insertion into HTML
+    function escapeHtml(s){
+      if(!s) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ---------- Error / permission hint
+    // If you see permission-denied: set rules to allow authenticated users during dev:
+    // service cloud.firestore {
+    //   match /databases/{database}/documents {
+    //     match /{document=**} { allow read, write: if request.auth != null; }
+    //   }
+    // }
+
   </script>
-  <!-- Lucide Icons CDN -->
-<script src="https://unpkg.com/lucide@latest"></script>
-<script>
-  lucide.createIcons(); // Initialize all Lucide icons
-</script>
 </body>
 </html>
