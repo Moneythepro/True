@@ -1,333 +1,308 @@
-<!--
-File: profile.html
-Purpose: TrueSocial Profile Page (revamped social-media grade UI)
--->
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>TrueSocial — Profile</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root {
-      --orange: #ff7a00;
-      --bg: #fff;
-      --muted: #777;
-      --light: #f6f6f6;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrueSocial — Profile</title>
 
-    body {
-      font-family: "Inter", system-ui, sans-serif;
-      background: var(--light);
-      margin: 0;
-      color: #222;
-    }
+<style>
+  :root {
+    --orange: #ff7a00;
+    --white: #fff;
+    --bg: #fafafa;
+    --muted: #777;
+  }
 
-    .app {
-      max-width: 420px;
-      margin: auto;
-      background: var(--bg);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-    }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: var(--bg);
+    margin: 0;
+    color: #222;
+  }
 
-    /* Header */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      background: var(--orange);
-      color: #fff;
-    }
+  .app {
+    max-width: 480px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--white);
+  }
 
-    .header h1 {
-      font-size: 18px;
-      margin: 0;
-      font-weight: 700;
-    }
+  /* Header */
+  header {
+    background: var(--orange);
+    color: #fff;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header .logo { font-weight: 700; font-size: 18px; }
+  header button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+  }
 
-    .header small {
-      font-size: 12px;
-      opacity: 0.9;
-    }
+  /* Profile area */
+  .profile-card {
+    text-align: center;
+    padding: 20px 16px;
+  }
+  .pfp {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--orange);
+  }
+  .change-pfp {
+    display: inline-block;
+    background: var(--orange);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+  .name {
+    margin-top: 10px;
+    font-weight: 700;
+    font-size: 20px;
+  }
+  .username {
+    color: var(--muted);
+    font-size: 14px;
+  }
 
-    .profile-section {
-      padding: 20px;
-      text-align: center;
-    }
+  /* Info fields */
+  .info-section {
+    padding: 0 16px 90px;
+  }
+  .field {
+    margin-top: 16px;
+  }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .field div {
+    padding: 10px 12px;
+    background: #f8f8f8;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  .field[contenteditable="true"], .field div[contenteditable="true"] {
+    background: #fff;
+    border: 1px solid var(--orange);
+  }
 
-    .pfp {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin: auto;
-      border: 3px solid var(--orange);
-      box-shadow: 0 0 10px rgba(255, 122, 0, 0.2);
-    }
+  /* Floating save bar */
+  .save-bar {
+    position: fixed;
+    bottom: 56px;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    padding: 10px 16px;
+    max-width: 480px;
+    margin: auto;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    .edit-pfp {
-      background: var(--orange);
-      color: #fff;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 20px;
-      margin-top: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
+  .btn {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn.orange { background: var(--orange); color: #fff; }
+  .btn.outline { border: 1px solid var(--orange); color: var(--orange); background: transparent; }
 
-    .info-section {
-      padding: 20px;
-    }
+  /* Bottom navigation */
+  nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: #fff;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 480px;
+    margin: auto;
+  }
+  nav button {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 22px;
+    cursor: pointer;
+  }
+  nav button.active { color: var(--orange); }
 
-    .field {
-      margin-bottom: 16px;
-    }
-
-    .field label {
-      display: block;
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 4px;
-    }
-
-    .field div[contenteditable="true"],
-    .field input {
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      padding: 10px;
-      border-radius: 10px;
-      width: 100%;
-      font-size: 15px;
-      transition: border 0.3s;
-    }
-
-    .field div[contenteditable="true"]:focus,
-    .field input:focus {
-      border-color: var(--orange);
-      outline: none;
-    }
-
-    .edit-toggle {
-      background: transparent;
-      border: none;
-      color: var(--orange);
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .save-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border-top: 1px solid rgba(0, 0, 0, 0.05);
-      padding: 10px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      max-width: 420px;
-      margin: auto;
-      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
-      display: none;
-    }
-
-    .btn {
-      background: var(--orange);
-      color: #fff;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn.secondary {
-      background: transparent;
-      color: var(--orange);
-      border: 1px solid var(--orange);
-    }
-
-    .username-status {
-      font-size: 13px;
-      margin-top: 2px;
-    }
-
-    .username-status.error { color: red; }
-    .username-status.success { color: green; }
-  </style>
+  @media (hover:hover) {
+    .btn:hover { opacity: 0.85; }
+    nav button:hover { color: var(--orange); }
+  }
+</style>
 </head>
+
 <body>
-  <div class="app">
-    <div class="header">
-      <div>
-        <h1>TrueSocial</h1>
-        <small>by Money Jr.</small>
-      </div>
-      <button class="edit-toggle" id="editToggle">Edit</button>
+<div class="app">
+  <header>
+    <div class="logo">TrueSocial</div>
+    <button id="editBtn">Edit</button>
+  </header>
+
+  <div class="profile-card">
+    <img id="pfpImg" class="pfp" src="https://picsum.photos/seed/me/200" alt="pfp" />
+    <input type="file" id="fileInput" accept="image/*" hidden />
+    <button class="change-pfp" id="changePfp">Change Photo</button>
+    <div class="name" id="displayName">Your Name</div>
+    <div class="username" id="displayUsername">@username</div>
+  </div>
+
+  <div class="info-section">
+    <div class="field">
+      <label>Bio</label>
+      <div id="bio" contenteditable="false">Tap Edit to add a bio.</div>
     </div>
 
-    <div class="profile-section">
-      <img id="pfpImg" class="pfp" src="https://picsum.photos/seed/me/200" alt="pfp" />
-      <input type="file" id="fileInput" accept="image/*" hidden />
-      <button class="edit-pfp" id="changePfp">Change Picture</button>
-      <h2 id="displayName">Your Name</h2>
-      <p id="displayUsername" style="color:var(--muted)">@username</p>
+    <div class="field">
+      <label>Name</label>
+      <div id="name" contenteditable="false">Your Name</div>
     </div>
 
-    <div class="info-section">
-      <div class="field">
-        <label>Bio</label>
-        <div id="bio" contenteditable="false">Tap edit to add a short bio.</div>
-      </div>
-
-      <div class="field">
-        <label>Name</label>
-        <div id="name" contenteditable="false">Your name</div>
-      </div>
-
-      <div class="field">
-        <label>Username</label>
-        <div id="username" contenteditable="false">yourusername</div>
-        <div id="usernameStatus" class="username-status"></div>
-      </div>
-    </div>
-
-    <div class="save-bar" id="saveBar">
-      <button class="btn secondary" id="logoutBtn">Logout</button>
-      <button class="btn" id="saveBtn">Save Changes</button>
+    <div class="field">
+      <label>Username</label>
+      <div id="username" contenteditable="false">yourusername</div>
     </div>
   </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <div class="save-bar" id="saveBar">
+    <button class="btn outline" id="logoutBtn">Logout</button>
+    <button class="btn orange" id="saveBtn">Save Changes</button>
+  </div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
-      authDomain: "truesocial-94e80.firebaseapp.com",
-      projectId: "truesocial-94e80",
-      storageBucket: "truesocial-94e80.appspot.com",
-      messagingSenderId: "993255311929",
-      appId: "1:993255311929:web:539d116fda9911960d5be8",
-      measurementId: "G-Y2YQ6DJJGS"
-    };
-    firebase.initializeApp(firebaseConfig);
+  <nav>
+    <button onclick="location.href='home.html'">🏠</button>
+    <button onclick="location.href='search.html'">🔍</button>
+    <button onclick="location.href='chat.html'">💬</button>
+    <button class="active" onclick="location.href='profile.html'">👤</button>
+    <button onclick="location.href='notifications.html'">🔔</button>
+  </nav>
+</div>
 
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const storage = firebase.storage();
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
-    const pfpImg = document.getElementById("pfpImg");
-    const fileInput = document.getElementById("fileInput");
-    const changePfp = document.getElementById("changePfp");
-    const editToggle = document.getElementById("editToggle");
-    const bioEl = document.getElementById("bio");
-    const nameEl = document.getElementById("name");
-    const usernameEl = document.getElementById("username");
-    const usernameStatus = document.getElementById("usernameStatus");
-    const displayName = document.getElementById("displayName");
-    const displayUsername = document.getElementById("displayUsername");
-    const saveBar = document.getElementById("saveBar");
-    const saveBtn = document.getElementById("saveBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
+    authDomain: "truesocial-94e80.firebaseapp.com",
+    projectId: "truesocial-94e80",
+    storageBucket: "truesocial-94e80.appspot.com",
+    messagingSenderId: "993255311929",
+    appId: "1:993255311929:web:539d116fda9911960d5be8",
+    measurementId: "G-Y2YQ6DJJGS"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
 
-    let meUid = null;
-    let editing = false;
-    let uploadedPfpUrl = "";
+  const editBtn = document.getElementById("editBtn");
+  const saveBar = document.getElementById("saveBar");
+  const saveBtn = document.getElementById("saveBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const pfpImg = document.getElementById("pfpImg");
+  const changePfp = document.getElementById("changePfp");
+  const fileInput = document.getElementById("fileInput");
+  const nameEl = document.getElementById("name");
+  const usernameEl = document.getElementById("username");
+  const bioEl = document.getElementById("bio");
+  const displayName = document.getElementById("displayName");
+  const displayUsername = document.getElementById("displayUsername");
 
-    // auth check
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) return (location.href = "login.html");
-      meUid = user.uid;
-      const doc = await db.collection("users").doc(meUid).get();
-      if (doc.exists) {
-        const d = doc.data();
-        pfpImg.src = d.pfp || `https://picsum.photos/seed/${meUid}/200`;
-        nameEl.textContent = d.name || "";
-        usernameEl.textContent = d.username || "";
-        bioEl.textContent = d.bio || "";
-        displayName.textContent = d.name || "Your Name";
-        displayUsername.textContent = "@" + (d.username || "username");
-      }
-    });
+  let meUid = null;
+  let editing = false;
+  let uploadedPfpUrl = "";
 
-    // Edit toggle
-    editToggle.addEventListener("click", () => {
-      editing = !editing;
-      [bioEl, nameEl, usernameEl].forEach((el) =>
-        el.setAttribute("contenteditable", editing)
-      );
-      editToggle.textContent = editing ? "Cancel" : "Edit";
-      saveBar.style.display = editing ? "flex" : "none";
-    });
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) return (location.href = "login.html");
+    meUid = user.uid;
+    const doc = await db.collection("users").doc(meUid).get();
+    if (doc.exists) {
+      const d = doc.data();
+      pfpImg.src = d.pfp || `https://picsum.photos/seed/${meUid}/200`;
+      nameEl.textContent = d.name || "";
+      usernameEl.textContent = d.username || "";
+      bioEl.textContent = d.bio || "";
+      displayName.textContent = d.name || "Your Name";
+      displayUsername.textContent = "@" + (d.username || "username");
+    }
+  });
 
-    // Change PFP
-    changePfp.addEventListener("click", () => {
-      if (!editing) return alert("Click Edit first to change your picture");
-      fileInput.click();
-    });
+  editBtn.addEventListener("click", () => {
+    editing = !editing;
+    [bioEl, nameEl, usernameEl].forEach((el) =>
+      el.setAttribute("contenteditable", editing)
+    );
+    editBtn.textContent = editing ? "Cancel" : "Edit";
+    saveBar.style.display = editing ? "flex" : "none";
+  });
 
-    fileInput.addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      pfpImg.src = URL.createObjectURL(file);
-      const ref = storage.ref().child(`pfps/${meUid}_${Date.now()}_${file.name}`);
-      await ref.put(file);
-      uploadedPfpUrl = await ref.getDownloadURL();
-      alert("Profile picture uploaded! Click Save to apply.");
-    });
+  changePfp.addEventListener("click", () => {
+    if (!editing) return alert("Tap Edit first!");
+    fileInput.click();
+  });
 
-    // Username uniqueness check (live)
-    usernameEl.addEventListener("input", async () => {
-      const username = usernameEl.textContent.trim().replace(/^@/, "");
-      if (username.length < 3) {
-        usernameStatus.textContent = "Too short";
-        usernameStatus.className = "username-status error";
-        return;
-      }
-      const q = await db.collection("users").where("username", "==", username).get();
-      if (!q.empty) {
-        const taken = q.docs.some((d) => d.id !== meUid);
-        if (taken) {
-          usernameStatus.textContent = "Username already taken";
-          usernameStatus.className = "username-status error";
-        } else {
-          usernameStatus.textContent = "Available";
-          usernameStatus.className = "username-status success";
-        }
-      } else {
-        usernameStatus.textContent = "Available";
-        usernameStatus.className = "username-status success";
-      }
-    });
+  fileInput.addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    pfpImg.src = URL.createObjectURL(f);
+    const ref = storage.ref().child(`pfps/${meUid}_${Date.now()}_${f.name}`);
+    await ref.put(f);
+    uploadedPfpUrl = await ref.getDownloadURL();
+    alert("Picture uploaded! Save to apply.");
+  });
 
-    // Save
-    saveBtn.addEventListener("click", async () => {
-      const name = nameEl.textContent.trim();
-      const username = usernameEl.textContent.trim().replace(/^@/, "");
-      const bio = bioEl.textContent.trim();
-      const payload = { name, username, bio, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-      if (uploadedPfpUrl) payload.pfp = uploadedPfpUrl;
-      await db.collection("users").doc(meUid).set(payload, { merge: true });
-      displayName.textContent = name;
-      displayUsername.textContent = "@" + username;
-      alert("Profile updated successfully!");
-      editToggle.click();
-    });
+  saveBtn.addEventListener("click", async () => {
+    const name = nameEl.textContent.trim();
+    const username = usernameEl.textContent.trim().replace(/^@/, "");
+    const bio = bioEl.textContent.trim();
+    const payload = { name, username, bio, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+    if (uploadedPfpUrl) payload.pfp = uploadedPfpUrl;
+    await db.collection("users").doc(meUid).set(payload, { merge: true });
+    displayName.textContent = name;
+    displayUsername.textContent = "@" + username;
+    alert("Profile saved!");
+    editBtn.click();
+  });
 
-    logoutBtn.addEventListener("click", async () => {
-      await auth.signOut();
-      location.href = "login.html";
-    });
-  </script>
+  logoutBtn.addEventListener("click", async () => {
+    await auth.signOut();
+    location.href = "login.html";
+  });
+</script>
 </body>
 </html>
