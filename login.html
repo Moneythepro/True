@@ -1,66 +1,153 @@
-<!--
-File: login.html
-Self-contained: HTML + CSS + JS (uses Firebase web SDK compat)
-Place these files in the same folder and open in browser (served by a simple static server for Storage/CORS to behave).
--->
-
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>TrueSocial — Login (by Money Jr.)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>TrueSocial — Login</title>
+
+  <!-- Lucide icons -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/lucide.min.js"></script>
+
+  <!-- Firebase (compat for simpler code) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
   <style>
-    :root{--orange:#ff7a00;--bg:#ffffff;--muted:#6b6b6b}
-    *{box-sizing:border-box}body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:0;padding:0;background:linear-gradient(180deg,#fff,#fff);color:#111;display:flex;align-items:center;justify-content:center;height:100vh}
-    .card{width:380px;border-radius:14px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.08);background:linear-gradient(180deg,#fff,#fff);border:1px solid rgba(0,0,0,.04)}
-    .logo{display:flex;gap:10px;align-items:center}
-    .dot{width:48px;height:48px;border-radius:12px;background:var(--orange);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
-    h2{margin:12px 0 6px}
-    .small{color:var(--muted);font-size:13px}
-    input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,.06);margin-top:10px}
-    .row{display:flex;gap:10px;align-items:center}
-    .btn{padding:10px 12px;border-radius:10px;border:0;background:var(--orange);color:#fff;font-weight:700;cursor:pointer}
-    .btn.secondary{background:transparent;color:var(--orange);border:1px solid rgba(255,122,0,.12)}
-    .link{color:var(--orange);cursor:pointer;font-weight:700;margin-left:6px}
-    .foot{margin-top:12px;font-size:13px;text-align:center;color:var(--muted)}
-    .error{color:#b00020;font-size:13px;margin-top:8px}
+    /* Mobile-first premium orange + white theme. Clean, modern, rounded. */
+    :root{
+      --orange:#ff7a00;
+      --orange-600:#ff6a00;
+      --bg:#fff;
+      --muted:#777;
+      --card-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      --radius:14px;
+      --safe-area-top: env(safe-area-inset-top);
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background: linear-gradient(180deg,#fff,#fff);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      color:#111;
+    }
+    /* container */
+    .screen{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:calc(var(--safe-area-top) + 16px) 16px 24px;
+      box-sizing:border-box;
+    }
+    .card{
+      width:100%;
+      max-width:420px;
+      background:var(--bg);
+      border-radius:18px;
+      box-shadow:var(--card-shadow);
+      padding:20px;
+    }
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-bottom:12px;
+    }
+    .logo{
+      width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,var(--orange),#ff9a4d);
+      display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;
+      box-shadow:0 6px 18px rgba(255,122,0,0.22);
+    }
+    h1{margin:0;font-size:20px;}
+    p.lead{margin:4px 0 16px;color:var(--muted);font-size:13px;}
+    .form{display:flex;flex-direction:column;gap:12px;}
+    input[type="email"],input[type="password"],input[type="text"]{
+      padding:14px;border-radius:12px;border:1px solid #f0f0f0;box-shadow:inset 0 -1px 0 rgba(0,0,0,0.02);font-size:15px;
+    }
+    button.primary{
+      background:linear-gradient(90deg,var(--orange),#ff944d);
+      border:none;color:white;padding:12px;border-radius:12px;font-size:15px;font-weight:600;
+      box-shadow:0 8px 20px rgba(255,122,0,0.18);
+    }
+    .row{display:flex;gap:8px;align-items:center;}
+    .muted{color:var(--muted);font-size:13px;}
+    .links{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
+    a.link{color:var(--orange-600);text-decoration:none;font-weight:600;}
+    .small{font-size:13px;color:var(--muted);}
+    .divider{height:1px;background:#fafafa;margin:12px 0;border-radius:6px;}
+    .social-placeholder{display:flex;gap:8px;align-items:center;justify-content:center;color:#bbb;padding:12px;border-radius:12px;border:1px dashed #f5f5f5;}
+    /* modal styles (signup) */
+    .modal{
+      position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:40;padding:18px;
+    }
+    .modal.open{display:flex;}
+    .modal .inner{width:100%;max-width:500px;background:white;border-radius:16px;padding:16px;box-shadow:var(--card-shadow);}
+    .error{color:#b00020;font-size:13px;margin-top:6px;}
+    .footnote{margin-top:12px;font-size:12px;color:#999;}
+    /* responsive for horizontal mobile */
+    @media (orientation:landscape){
+      .card{max-width:780px;padding:18px;display:flex;gap:14px;align-items:center;}
+      .brand{flex-direction:column;align-items:flex-start;}
+      .form{flex:1;}
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="logo">
-      <div class="dot">TS</div>
-      <div>
-        <div style="font-weight:800">TrueSocial</div>
-        <div class="small">by Money Jr. — Premium Orange + White</div>
+  <div class="screen">
+    <div class="card" role="main" aria-labelledby="title">
+      <div class="brand">
+        <div class="logo">TS</div>
+        <div>
+          <h1 id="title">TrueSocial — Login</h1>
+          <p class="lead">Premium messaging by Money Jr. — fast, private, beautiful.</p>
+        </div>
       </div>
+
+      <form id="loginForm" class="form" onsubmit="return false;">
+        <input id="email" type="email" placeholder="Email" required />
+        <input id="password" type="password" placeholder="Password" required />
+        <button id="loginBtn" class="primary">Sign in</button>
+
+        <div class="links">
+          <a href="#" id="forgotLink" class="link small" role="button">Forgot password?</a>
+          <a href="#" id="openSignup" class="link small" role="button">Sign up</a>
+        </div>
+
+        <div class="divider" aria-hidden="true"></div>
+
+        <div class="small muted">Use the app on your phone in vertical or horizontal orientation. Buttons have larger touch areas for mobile.</div>
+        <div id="loginError" class="error" role="alert" style="display:none"></div>
+      </form>
     </div>
-
-    <h2>Welcome back</h2>
-    <div class="small">Login with email or create an account</div>
-
-    <div style="margin-top:12px">
-      <input id="email" placeholder="Email" />
-      <input id="password" placeholder="Password" type="password" />
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button id="loginBtn" class="btn">Login</button>
-        <button id="signupBtn" class="btn secondary">Sign up</button>
-      </div>
-      <div id="err" class="error" role="alert" style="display:none"></div>
-    </div>
-
-    <div class="foot">Demo app — clicking login after signup navigates to Home. Use real hosting for Storage features.</div>
   </div>
 
-  <!-- Firebase (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <!-- Signup modal (create account + username uniqueness) -->
+  <div id="signupModal" class="modal" aria-hidden="true">
+    <div class="inner" role="dialog" aria-modal="true" aria-labelledby="signupTitle">
+      <h3 id="signupTitle">Create TrueSocial Account</h3>
+      <p class="small">Choose a unique username (letters/numbers/._). Name and bio required.</p>
+      <form id="signupForm" onsubmit="return false;" style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+        <input id="suName" type="text" placeholder="Full name" required />
+        <input id="suUsername" type="text" placeholder="Username (unique)" required />
+        <input id="suEmail" type="email" placeholder="Email" required />
+        <input id="suPassword" type="password" placeholder="Password (min 6)" required />
+        <textarea id="suBio" placeholder="Short bio" rows="2" style="padding:12px;border-radius:10px;border:1px solid #f0f0f0;"></textarea>
+
+        <div style="display:flex;gap:8px;">
+          <button id="createBtn" class="primary" style="flex:1">Create Account</button>
+          <button id="cancelSignup" style="flex:1;border-radius:10px;border:1px solid #eee;background:#fff;">Cancel</button>
+        </div>
+        <div id="signupError" class="error" style="display:none"></div>
+      </form>
+    </div>
+  </div>
 
   <script>
-    // --- Firebase config (user-provided) ---
+    // Firebase config (provided) and initialization
     const firebaseConfig = {
       apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
       authDomain: "truesocial-94e80.firebaseapp.com",
@@ -75,60 +162,109 @@ Place these files in the same folder and open in browser (served by a simple sta
     const db = firebase.firestore();
     const storage = firebase.storage();
 
-    // Utils
-    const errEl = document.getElementById('err');
-    function showErr(msg){
-      errEl.style.display='block'; errEl.textContent=msg;
-      setTimeout(()=>{ errEl.style.display='none' },4000);
-    }
+    // UI elements
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const forgotLink = document.getElementById('forgotLink');
+    const openSignup = document.getElementById('openSignup');
 
-    // Login
-    document.getElementById('loginBtn').addEventListener('click', async ()=>{
+    // Signup modal elements
+    const signupModal = document.getElementById('signupModal');
+    const signupForm = document.getElementById('signupForm');
+    const createBtn = document.getElementById('createBtn');
+    const cancelSignup = document.getElementById('cancelSignup');
+    const signupError = document.getElementById('signupError');
+
+    // Show lucide icons (not used heavily here but included globally)
+    document.addEventListener("DOMContentLoaded", ()=> lucide.createIcons());
+
+    // LOGIN
+    loginBtn.addEventListener('click', async () => {
+      loginError.style.display = 'none';
       const email = document.getElementById('email').value.trim();
-      const pw = document.getElementById('password').value;
-      if(!email || !pw){ showErr('Enter email and password'); return; }
+      const password = document.getElementById('password').value.trim();
+      if(!email || !password){ loginError.textContent = 'Please enter email and password.'; loginError.style.display='block'; return; }
+      loginBtn.disabled = true; loginBtn.textContent = 'Signing in...';
       try{
-        await auth.signInWithEmailAndPassword(email,pw);
-        // go home
+        await auth.signInWithEmailAndPassword(email, password);
+        // Redirect to home
         location.href = 'index.html';
-      }catch(e){
-        showErr(e.message || 'Login failed');
-      }
+      }catch(err){
+        loginError.textContent = err.message || 'Login failed';
+        loginError.style.display='block';
+      }finally{ loginBtn.disabled=false; loginBtn.textContent='Sign in'; }
     });
 
-    // Sign up: creates auth user + user document with username default
-    document.getElementById('signupBtn').addEventListener('click', async ()=>{
-      const email = document.getElementById('email').value.trim();
-      const pw = document.getElementById('password').value;
-      if(!email || !pw){ showErr('Enter email and password'); return; }
+    // Forgot password
+    forgotLink.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = prompt('Enter your account email to receive a reset link:');
+      if(!email) return;
       try{
-        const cred = await auth.createUserWithEmailAndPassword(email,pw);
-        const user = cred.user;
-        // set default user doc
-        const username = email.split('@')[0];
-        await db.collection('users').doc(user.uid).set({
-          uid: user.uid,
-          email: user.email,
-          name: username,
-          username: username,
-          bio: '',
-          pfp: '', // storage URL later
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        // success -> go to profile to set pfp/name
-        location.href = 'profile.html';
-      }catch(e){
-        showErr(e.message || 'Signup failed');
+        await auth.sendPasswordResetEmail(email);
+        alert('Password reset email sent. Check your inbox.');
+      }catch(err){
+        alert('Error: ' + (err.message || 'Could not send reset email.'));
       }
     });
 
-    // If user already authenticated, redirect to home
-    auth.onAuthStateChanged(user=>{
-      if(user){
-        // If on login page, go to index
-        // We only redirect if on login page.
+    // Open signup modal
+    openSignup.addEventListener('click', (e)=>{ e.preventDefault(); signupModal.classList.add('open'); signupModal.setAttribute('aria-hidden','false'); });
+
+    // Cancel signup
+    cancelSignup.addEventListener('click', (e)=>{ e.preventDefault(); signupModal.classList.remove('open'); signupModal.setAttribute('aria-hidden','true'); });
+
+    // Utility: username validation (letters, numbers, ., _)
+    function validUsername(u){ return /^[a-zA-Z0-9._]{3,30}$/.test(u); }
+
+    // SIGNUP - create user, ensure unique username and create user doc
+    createBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      signupError.style.display='none';
+      const name = document.getElementById('suName').value.trim();
+      const username = document.getElementById('suUsername').value.trim().toLowerCase();
+      const email = document.getElementById('suEmail').value.trim();
+      const password = document.getElementById('suPassword').value;
+      const bio = document.getElementById('suBio').value.trim();
+
+      if(!name || !username || !email || !password || !bio){
+        signupError.textContent = 'All fields are required.'; signupError.style.display='block'; return;
+      }
+      if(!validUsername(username)){ signupError.textContent = 'Invalid username. Use letters, numbers, . or _. 3-30 chars.'; signupError.style.display='block'; return; }
+      if(password.length<6){ signupError.textContent='Password must be at least 6 characters.'; signupError.style.display='block'; return; }
+
+      createBtn.disabled = true; createBtn.textContent = 'Creating...';
+      try{
+        // Enforce unique username by querying users collection
+        const snap = await db.collection('users').where('username','==',username).get();
+        if(!snap.empty){ throw new Error('Username already taken. Choose another.'); }
+        // Create auth user
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        const uid = cred.user.uid;
+        // Create user document
+        await db.collection('users').doc(uid).set({
+          name, username, bio, email, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          pfp: '', // empty until uploaded
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        // redirect to profile page where user can upload pfp and edit
+        location.href = 'profile.html';
+      }catch(err){
+        signupError.textContent = err.message || 'Sign-up failed';
+        signupError.style.display='block';
+      }finally{ createBtn.disabled=false; createBtn.textContent='Create Account'; }
+    });
+
+    // If user is already logged in, redirect to home
+    auth.onAuthStateChanged(user => {
+      if(user){ // if coming from signup, we let them proceed to profile naturally
+        // optionally redirect to index if already logged in
       }
     });
+
+    // Accessibility: close modal with ESC
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') { signupModal.classList.remove('open'); signupModal.setAttribute('aria-hidden','true'); } });
   </script>
 </body>
 </html>
