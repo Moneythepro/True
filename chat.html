@@ -5,38 +5,193 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrueSocial — Chat</title>
 
+  <!-- Lucide icons (single include) -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/lucide.min.js"></script>
+
+  <!-- Firebase compat (kept as you had) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <style>
-    :root{--orange:#ff7a00;--muted:#666;}
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Arial;background:#fff;color:#111}
-    .chat-wrap{display:flex;flex-direction:column;height:100vh;}
-    header{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #f5f5f5;background:white;position:sticky;top:0;z-index:20}
-    .pfp{width:48px;height:48px;border-radius:12px;background:#f2f2f2;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    :root{
+      --orange:#ff7a00;
+      --muted:#666;
+      --bg:#ffffff;
+      --bubble-shadow: 0 6px 18px rgba(0,0,0,0.04);
+      /* safe area support (iOS) */
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
+    }
+
+    /* using calculated vh to avoid mobile chrome resize jumps */
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:Inter,system-ui,Roboto,Arial,Helvetica;
+      background:var(--bg);
+      color:#111;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* container now full-screen using --vh */
+    .chat-wrap{
+      height: calc(var(--vh, 1vh) * 100);
+      display:flex;
+      flex-direction:column;
+      background:linear-gradient(180deg,#fff,#fff);
+      overflow:hidden;
+    }
+
+    /* fixed header so keyboard won't push it */
+    header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px;
+      padding-top: calc(12px + var(--safe-top));
+      border-bottom:1px solid #f5f5f5;
+      background:white;
+      position:fixed;
+      left:0;
+      right:0;
+      top:0;
+      z-index:40;
+      will-change:transform;
+    }
+    .pfp{width:48px;height:48px;border-radius:12px;background:#f2f2f2;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0}
     .pfp img{width:100%;height:100%;object-fit:cover}
-    .meta{flex:1}
-    .meta .name{font-weight:700}
-    .meta .status{font-size:13px;color:var(--muted)}
-    .messages{flex:1;padding:12px;overflow:auto;background:linear-gradient(180deg,#fff,#fff)}
-    .bubble{max-width:78%;padding:10px;border-radius:12px;margin-bottom:8px;box-shadow:0 6px 18px rgba(0,0,0,0.04);display:inline-block}
-    .bubble.sent{background:linear-gradient(90deg,#fff,#fff);margin-left:auto;border-radius:12px 12px 6px 12px}
-    .bubble.received{background:#fff;border:1px solid #f6f6f6;border-radius:12px 12px 12px 6px}
-    .metaSmall{font-size:11px;color:#888;margin-top:6px;display:flex;gap:6px;align-items:center}
-    .inputBar{display:flex;gap:8px;padding:10px;border-top:1px solid #f3f3f3;background:white}
-    .input{flex:1;padding:10px;border-radius:12px;border:1px solid #f0f0f0;display:flex;gap:8px;align-items:center}
-    .input input{border:none;outline:none;width:100%}
-    .btn{background:var(--orange);color:white;border:none;padding:10px;border-radius:12px}
+    .meta{flex:1;min-width:0}
+    .meta .name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .meta .status{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* messages area — account for header and inputBar heights with padding */
+    .messages{
+      flex:1;
+      padding:12px;
+      padding-top: calc(12px + 64px); /* header height approx 64 + spacing */
+      padding-bottom: calc(120px + var(--safe-bottom)); /* leave space for fixed input */
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+      scroll-behavior:smooth;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    /* bubbles */
+    .bubble{
+      max-width:78%;
+      padding:10px;
+      border-radius:12px;
+      margin-bottom:8px;
+      box-shadow: var(--bubble-shadow);
+      display:inline-block;
+      word-break: break-word; /* wrap long words */
+      white-space:pre-wrap;
+      line-height:1.35;
+      font-size:15px;
+    }
+    .bubble.sent{
+      background: linear-gradient(90deg,#fff,#fff);
+      margin-left:auto;
+      border-radius:12px 12px 6px 12px;
+      text-align:right;
+    }
+    .bubble.received{
+      background:#fff;
+      border:1px solid #f6f6f6;
+      border-radius:12px 12px 12px 6px;
+      text-align:left;
+    }
+    .metaSmall{font-size:11px;color:#888;margin-top:6px;display:flex;gap:6px;align-items:center;justify-content:flex-end}
+
+    /* fixed input bar at bottom */
+    .inputBar{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:50;
+      display:flex;
+      gap:8px;
+      padding:10px;
+      padding-bottom: calc(10px + var(--safe-bottom));
+      border-top:1px solid #f3f3f3;
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,1));
+      backdrop-filter: blur(6px);
+    }
+    .input{
+      flex:1;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid #f0f0f0;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      background:white;
+      position:relative;
+    }
+    .input input{
+      border:none;
+      outline:none;
+      width:100%;
+      font-size:15px;
+      background:transparent;
+    }
+    .btn{
+      background:var(--orange);
+      color:white;
+      border:none;
+      padding:10px 12px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .btn:disabled{opacity:0.5;cursor:not-allowed}
+
     .tick{font-size:12px;color:#a1a1a1}
     .tick.read{color:green}
+
     .profile-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:60;padding:12px}
     .profile-modal.open{display:flex}
     .profile-card{background:white;padding:12px;border-radius:12px;width:100%;max-width:420px}
-    .emoji-picker{position:absolute;bottom:64px;left:12px;padding:8px;border-radius:12px;background:white;box-shadow:0 10px 30px rgba(0,0,0,0.08)}
-    @media (orientation:landscape){ .messages{max-width:1100px;margin:0 auto} }
+
+    /* emoji picker placed absolute above input and respects safe area */
+    .emoji-picker{
+      position:absolute;
+      bottom:60px; /* will be adjusted in JS to match input if needed */
+      left:8px;
+      right:auto;
+      padding:10px;
+      border-radius:12px;
+      background:white;
+      box-shadow:0 10px 30px rgba(0,0,0,0.08);
+      z-index:120;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      max-width:260px;
+    }
+
+    .muted{color:var(--muted);font-size:14px}
+
+    /* landscape tweaks */
+    @media (orientation:landscape){
+      .messages{max-width:1100px;margin:0 auto}
+      .inputBar{max-width:1100px;margin:0 auto;left:0;right:0}
+      header{max-width:1100px;margin:0 auto}
+    }
+
+    /* small screens */
+    @media (max-width:420px){
+      .pfp{width:42px;height:42px}
+      header{padding:10px;padding-top: calc(10px + var(--safe-top))}
+      .message-text{font-size:14px}
+    }
   </style>
 </head>
 <body>
@@ -52,22 +207,28 @@
       </div>
     </header>
 
-    <div id="messages" class="messages" aria-live="polite">
-      <!-- messages appear here -->
+    <div id="messages" class="messages" aria-live="polite" role="log">
       <div class="muted" id="loadingMsgs">Loading messages...</div>
     </div>
 
-    <div class="inputBar">
+    <div class="inputBar" id="inputBar">
       <div class="input" style="position:relative">
         <button id="emojiBtn" title="Emoji" style="border:none;background:none"><i data-lucide="smile"></i></button>
-        <input id="messageInput" placeholder="Type a message" />
+        <input id="messageInput" placeholder="Type a message" autocomplete="off" inputmode="text" />
         <button id="attachBtn" title="Attach" style="border:none;background:none"><i data-lucide="paperclip"></i></button>
-        <div id="emojiPicker" class="emoji-picker" style="display:none">😀 😁 😂 😉 😊 😍 😎 😢 😡 🎉👍</div>
+
+        <!-- emoji picker -->
+        <div id="emojiPicker" class="emoji-picker" style="display:none" aria-hidden="true" role="dialog">
+          <!-- sample emojis, you can expand or swap in a real emoji picker later -->
+          😀 😁 😂 😉 😊 😍 😎 😢 😡 🎉 👍 🙏 🤝 💯 🔥 ✨ 🎶 🎧
+        </div>
       </div>
-      <button id="sendBtn" class="btn"><i data-lucide="send"></i></button>
+      <button id="sendBtn" class="btn" aria-label="Send message" disabled><i data-lucide="send"></i></button>
     </div>
+
   </div>
 
+  <!-- profile modal -->
   <div id="profileModal" class="profile-modal" aria-hidden="true">
     <div class="profile-card">
       <div style="display:flex;gap:10px;align-items:center">
@@ -88,25 +249,26 @@
   </div>
 
   <script>
+    // Initialize icons once
     document.addEventListener("DOMContentLoaded", ()=> lucide.createIcons());
-    // Fire init
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
-      authDomain: "truesocial-94e80.firebaseapp.com",
-      projectId: "truesocial-94e80",
-      storageBucket: "truesocial-94e80.firebasestorage.app",
-      messagingSenderId: "993255311929",
-      appId: "1:993255311929:web:539d116fda9911960d5be8",
-      measurementId: "G-Y2YQ6DJJGS"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
 
-    // URL params: chatId & with
-    const params = new URLSearchParams(location.search);
-    let chatId = params.get('chatId');
-    let otherUid = params.get('with');
+    // --- Viewport VH trick to avoid mobile chrome jump ---
+    function setVhVar(){
+      // 1vh unit equal to 1% of the viewport height
+      document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+    }
+    setVhVar();
+    window.addEventListener('resize', () => {
+      setVhVar();
+      // small debounce-like behavior
+      clearTimeout(window.__rsz);
+      window.__rsz = setTimeout(()=> {
+        // ensure messages area stays scrolled to bottom when keyboard appears/disappears
+        scrollToBottom({smooth:false});
+      }, 120);
+    });
+
+    // DOM refs
     const messagesEl = document.getElementById('messages');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -123,27 +285,136 @@
     const closePM = document.getElementById('closePM');
     const viewProfileBtn = document.getElementById('viewProfileBtn');
 
+    // Firebase (unchanged)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
+      authDomain: "truesocial-94e80.firebaseapp.com",
+      projectId: "truesocial-94e80",
+      storageBucket: "truesocial-94e80.firebasestorage.app",
+      messagingSenderId: "993255311929",
+      appId: "1:993255311929:web:539d116fda9911960d5be8",
+      measurementId: "G-Y2YQ6DJJGS"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // URL params
+    const params = new URLSearchParams(location.search);
+    let chatId = params.get('chatId');
+    let otherUid = params.get('with');
+
     let currentUser = null;
     let otherUser = null;
     let messagesUnsub = null;
 
+    // helper to format time (firestore timestamp safe)
+    function formatTime(ts){
+      if(!ts) return '';
+      try {
+        const d = (typeof ts.toDate === 'function') ? ts.toDate() : new Date(ts);
+        return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      } catch(e){
+        return '';
+      }
+    }
+
+    function escapeHtml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // robust scroll-to-bottom
+    function scrollToBottom({smooth=true} = {}){
+      try {
+        if(smooth) messagesEl.scrollTo({top: messagesEl.scrollHeight, behavior:'smooth'});
+        else messagesEl.scrollTop = messagesEl.scrollHeight;
+      } catch(e) { messagesEl.scrollTop = messagesEl.scrollHeight; }
+    }
+
+    // ensure inputBar height is considered by messages area (in case of dynamic sizes)
+    function adjustMessagesPadding(){
+      const inputBar = document.getElementById('inputBar');
+      const headerHeight = document.querySelector('header').offsetHeight || 64;
+      const inputHeight = inputBar.offsetHeight || 72;
+      messagesEl.style.paddingTop = (12 + headerHeight) + 'px';
+      messagesEl.style.paddingBottom = (12 + inputHeight + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) ) + 'px';
+    }
+
+    // Keep UI in sync when keyboard opens: scroll on focus
+    messageInput.addEventListener('focus', ()=>{
+      // hide emoji picker when focusing input
+      hideEmojiPicker();
+      setTimeout(()=> scrollToBottom({smooth:true}), 120);
+    });
+
+    // enable/disable send button
+    messageInput.addEventListener('input', ()=> {
+      sendBtn.disabled = messageInput.value.trim().length === 0;
+    });
+
+    // emoji picker toggling and insertion at cursor
+    function showEmojiPicker(){
+      emojiPicker.style.display = 'flex';
+      emojiPicker.setAttribute('aria-hidden','false');
+      // position above input properly (in case heights changed)
+      const inputRect = messageInput.getBoundingClientRect();
+      const picker = emojiPicker;
+      // compute bottom offset so it appears just above the input
+      picker.style.bottom = (window.innerHeight - inputRect.top + 8) + 'px'; // fallback; CSS already handles a decent default
+    }
+    function hideEmojiPicker(){
+      emojiPicker.style.display = 'none';
+      emojiPicker.setAttribute('aria-hidden','true');
+    }
+    emojiBtn.addEventListener('click', (e)=>{
+      const visible = emojiPicker.style.display !== 'none';
+      if(visible) hideEmojiPicker(); else { showEmojiPicker(); messageInput.focus(); }
+    });
+
+    // Insert emoji at cursor position
+    emojiPicker.addEventListener('click', (e)=>{
+      if(!e.target || !e.target.textContent) return;
+      const emoji = e.target.textContent;
+      // insert at caret in input
+      const el = messageInput;
+      const start = el.selectionStart || 0;
+      const end = el.selectionEnd || 0;
+      const value = el.value || '';
+      el.value = value.slice(0,start) + emoji + value.slice(end);
+      // set caret after inserted emoji
+      const newPos = start + emoji.length;
+      el.selectionStart = el.selectionEnd = newPos;
+      el.focus();
+      sendBtn.disabled = el.value.trim().length === 0;
+    });
+
+    // Attachment placeholder
+    attachBtn.addEventListener('click', ()=>{ alert('Attachment not implemented in this MVP. Use Storage APIs to upload files.'); });
+
+    // profile modal open
+    openProfile.addEventListener('click', ()=>{
+      profileModal.classList.add('open'); profileModal.setAttribute('aria-hidden','false');
+      pmName.textContent = otherUser?.name || '';
+      pmUser.textContent = '@' + (otherUser?.username||'');
+      pmBio.textContent = otherUser?.bio || '';
+      pmPfp.innerHTML = otherUser?.pfp ? `<img src="${otherUser.pfp}" style="width:100%;height:100%;object-fit:cover" />` : `<i data-lucide="user"></i>`;
+      lucide.createIcons();
+    });
+    closePM.addEventListener('click', ()=>{ profileModal.classList.remove('open'); profileModal.setAttribute('aria-hidden','true'); });
+    viewProfileBtn.addEventListener('click', ()=>{ location.href = 'profile.html?view=' + (otherUser?.uid || ''); });
+
+    // Auto-init after auth
     auth.onAuthStateChanged(async user=>{
-      if(!user) location.href='login.html';
+      if(!user) { location.href = 'login.html'; return; }
       currentUser = user;
-      // if chatId not provided, create or find chat with otherUid
+      // find/create chat if necessary
       if(!chatId && otherUid){
-        // check for existing chat
-        const q = await db.collection('chats')
-          .where('participants','array-contains', currentUser.uid).get();
-        // find chat where otherUid is participant
-        let found=null;
+        const q = await db.collection('chats').where('participants','array-contains', currentUser.uid).get();
+        let found = null;
         q.forEach(d=>{
           const p = d.data().participants || [];
           if(p.includes(otherUid)) found = {id:d.id,data:d.data()};
         });
-        if(found){ chatId = found.id; }
-        else{
-          // create chat doc
+        if(found) chatId = found.id;
+        else {
           const doc = await db.collection('chats').add({
             participants: [currentUser.uid, otherUid],
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -153,18 +424,25 @@
           chatId = doc.id;
         }
       }
-      if(!chatId){ messagesEl.innerHTML = '<div class="muted">No chat selected.</div>'; return; }
-      // load other user data
+
+      if(!chatId){
+        messagesEl.innerHTML = '<div class="muted">No chat selected.</div>';
+        return;
+      }
+
+      // infer otherUid from chat doc if missing
       if(!otherUid){
-        // infer other uid from chat doc
         const chatDoc = await db.collection('chats').doc(chatId).get();
         if(chatDoc.exists){
           const participants = chatDoc.data().participants || [];
           otherUid = participants.find(u=>u!==currentUser.uid);
         } else {
-          messagesEl.innerHTML = '<div class="muted">Chat not found.</div>'; return;
+          messagesEl.innerHTML = '<div class="muted">Chat not found.</div>';
+          return;
         }
       }
+
+      // load other user data
       const otherDoc = await db.collection('users').doc(otherUid).get();
       otherUser = otherDoc.exists ? {...otherDoc.data(), uid: otherUid} : {name:'Unknown', username:'', pfp:''};
       document.getElementById('chatName').textContent = otherUser.name || 'Unknown';
@@ -172,37 +450,54 @@
       if(otherUser.pfp) document.getElementById('chatPfp').innerHTML = `<img src="${otherUser.pfp}" alt="">`;
       lucide.createIcons();
 
-      // start messages listener
+      // start listening for messages
       startMessagesListener();
+      // ensure layout correct
+      adjustMessagesPadding();
+      setTimeout(()=> scrollToBottom({smooth:false}), 200);
     });
 
+    // start listener
     function startMessagesListener(){
       if(messagesUnsub) messagesUnsub();
       messagesEl.innerHTML = '<div class="muted">Loading messages...</div>';
       const messagesRef = db.collection('chats').doc(chatId).collection('messages').orderBy('sentAt','asc');
       messagesUnsub = messagesRef.onSnapshot(snap=>{
         messagesEl.innerHTML = '';
+        if(snap.empty){
+          messagesEl.innerHTML = '<div class="muted">No messages yet. Say hi 👋</div>';
+          return;
+        }
         snap.forEach(doc=>{
           const m = doc.data();
+          const divWrap = document.createElement('div');
+          divWrap.style.display = 'flex';
+          divWrap.style.flexDirection = 'column';
+          divWrap.style.alignItems = (m.from === currentUser.uid) ? 'flex-end' : 'flex-start';
+
           const div = document.createElement('div');
           div.className = 'bubble ' + (m.from===currentUser.uid ? 'sent' : 'received');
-          div.innerHTML = `<div>${escapeHtml(m.text || '')}</div><div class="metaSmall">${formatTime(m.sentAt || new Date())} <span class="tick ${m.read ? 'read' : ''}">${m.status==='read' ? '✓✓' : m.status==='delivered' ? '✓✓' : m.status==='sent' ? '✓' : ''}</span></div>`;
-          messagesEl.appendChild(div);
+          const safeText = escapeHtml(m.text || '');
+          div.innerHTML = `<div class="message-text">${safeText}</div>
+            <div class="metaSmall">${formatTime(m.sentAt || new Date())} <span class="tick ${m.read ? 'read' : ''}">${m.status==='read' ? '✓✓' : m.status==='delivered' ? '✓✓' : m.status==='sent' ? '✓' : ''}</span></div>`;
+          divWrap.appendChild(div);
+          messagesEl.appendChild(divWrap);
         });
-        // scroll to bottom automatically
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        adjustMessagesPadding();
+        // scroll to bottom after DOM update
+        setTimeout(()=> scrollToBottom({smooth:true}), 80);
         lucide.createIcons();
       }, err=>{
         messagesEl.innerHTML = '<div class="muted">Could not load messages.</div>';
+        console.error('messages error', err);
       });
     }
 
-    // Send message
+    // send message
     sendBtn.addEventListener('click', async ()=>{
       const text = messageInput.value.trim();
       if(!text) return;
-      sendBtn.disabled=true;
-      // Optionally prevent messaging non-friends: we allow for MVP but can check
+      sendBtn.disabled = true;
       try{
         const msgRef = db.collection('chats').doc(chatId).collection('messages').doc();
         const msg = {
@@ -215,50 +510,58 @@
           read: false
         };
         await msgRef.set(msg);
-        // update chat doc lastMessage & lastUpdated
         await db.collection('chats').doc(chatId).update({
           lastMessage: msg,
           lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         });
-        messageInput.value='';
-      }catch(err){
-        alert('Message failed: '+err.message);
-      }finally{ sendBtn.disabled=false; }
+        messageInput.value = '';
+        sendBtn.disabled = true;
+        // hide picker & re-focus
+        hideEmojiPicker();
+        messageInput.focus();
+        // scroll after sending
+        setTimeout(()=> scrollToBottom({smooth:true}), 120);
+      } catch(err){
+        alert('Message failed: ' + (err.message || err));
+        console.error(err);
+      } finally {
+        sendBtn.disabled = false;
+      }
     });
 
-    // Emoji toggle
-    emojiBtn.addEventListener('click', ()=>{ emojiPicker.style.display = emojiPicker.style.display==='none' ? 'block' : 'none'; });
-
-    // Quick emoji click insertion
-    emojiPicker.addEventListener('click', (e)=>{ if(e.target.textContent){ messageInput.value += e.target.textContent; messageInput.focus(); } });
-
-    // Attachment placeholder
-    attachBtn.addEventListener('click', ()=>{ alert('Attachment not implemented in this MVP. Storage APIs can be used to upload and store files.'); });
-
-    // Profile modal open
-    openProfile.addEventListener('click', ()=>{
-      profileModal.classList.add('open'); profileModal.setAttribute('aria-hidden','false');
-      pmName.textContent = otherUser.name || '';
-      pmUser.textContent = '@' + (otherUser.username||'');
-      pmBio.textContent = otherUser.bio || '';
-      pmPfp.innerHTML = otherUser.pfp ? `<img src="${otherUser.pfp}" style="width:100%;height:100%;object-fit:cover" />` : `<i data-lucide="user"></i>`;
-      lucide.createIcons();
+    // small accessibility: press Enter to send (without Shift)
+    messageInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        if(!sendBtn.disabled) sendBtn.click();
+      }
     });
-    closePM.addEventListener('click', ()=>{ profileModal.classList.remove('open'); profileModal.setAttribute('aria-hidden','true'); });
-    viewProfileBtn.addEventListener('click', ()=>{ location.href = 'profile.html?view=' + otherUser.uid; });
 
-    // Helpers
-    function formatTime(ts){
-      if(!ts) return '';
-      const d = ts.toDate ? ts.toDate() : new Date(ts);
-      return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    }
-    function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    // Close emoji picker if clicking outside
+    document.addEventListener('click', (e)=>{
+      if(emojiPicker.contains(e.target) || emojiBtn.contains(e.target) || messageInput.contains(e.target)) return;
+      hideEmojiPicker();
+    });
+
+    // initial adjust
+    window.addEventListener('load', ()=> {
+      adjustMessagesPadding();
+      setTimeout(()=> scrollToBottom({smooth:false}), 200);
+    });
+
+    // ensure padding recalculated when styles/layout change (e.g., orientation)
+    window.matchMedia("(orientation:portrait)").addEventListener('change', ()=> {
+      adjustMessagesPadding();
+      setTimeout(()=> scrollToBottom({smooth:false}), 140);
+    });
+
+    // Clean up subscription if page unloaded
+    window.addEventListener('beforeunload', ()=>{
+      if(messagesUnsub) messagesUnsub();
+    });
   </script>
-  <!-- Lucide Icons CDN -->
-<script src="https://unpkg.com/lucide@latest"></script>
-<script>
-  lucide.createIcons(); // Initialize all Lucide icons
-</script>
+
+  <!-- Initialize icons again for dynamically added svg placeholders -->
+  <script>lucide.createIcons();</script>
 </body>
 </html>
