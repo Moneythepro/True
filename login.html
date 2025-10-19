@@ -1,0 +1,134 @@
+<!--
+File: login.html
+Self-contained: HTML + CSS + JS (uses Firebase web SDK compat)
+Place these files in the same folder and open in browser (served by a simple static server for Storage/CORS to behave).
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TrueSocial — Login (by Money Jr.)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--orange:#ff7a00;--bg:#ffffff;--muted:#6b6b6b}
+    *{box-sizing:border-box}body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:0;padding:0;background:linear-gradient(180deg,#fff,#fff);color:#111;display:flex;align-items:center;justify-content:center;height:100vh}
+    .card{width:380px;border-radius:14px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.08);background:linear-gradient(180deg,#fff,#fff);border:1px solid rgba(0,0,0,.04)}
+    .logo{display:flex;gap:10px;align-items:center}
+    .dot{width:48px;height:48px;border-radius:12px;background:var(--orange);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+    h2{margin:12px 0 6px}
+    .small{color:var(--muted);font-size:13px}
+    input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,.06);margin-top:10px}
+    .row{display:flex;gap:10px;align-items:center}
+    .btn{padding:10px 12px;border-radius:10px;border:0;background:var(--orange);color:#fff;font-weight:700;cursor:pointer}
+    .btn.secondary{background:transparent;color:var(--orange);border:1px solid rgba(255,122,0,.12)}
+    .link{color:var(--orange);cursor:pointer;font-weight:700;margin-left:6px}
+    .foot{margin-top:12px;font-size:13px;text-align:center;color:var(--muted)}
+    .error{color:#b00020;font-size:13px;margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="dot">TS</div>
+      <div>
+        <div style="font-weight:800">TrueSocial</div>
+        <div class="small">by Money Jr. — Premium Orange + White</div>
+      </div>
+    </div>
+
+    <h2>Welcome back</h2>
+    <div class="small">Login with email or create an account</div>
+
+    <div style="margin-top:12px">
+      <input id="email" placeholder="Email" />
+      <input id="password" placeholder="Password" type="password" />
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="loginBtn" class="btn">Login</button>
+        <button id="signupBtn" class="btn secondary">Sign up</button>
+      </div>
+      <div id="err" class="error" role="alert" style="display:none"></div>
+    </div>
+
+    <div class="foot">Demo app — clicking login after signup navigates to Home. Use real hosting for Storage features.</div>
+  </div>
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <script>
+    // --- Firebase config (user-provided) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK4lJ_mjj5GNAruuIMxeiQprdB_vvcEP8",
+      authDomain: "truesocial-94e80.firebaseapp.com",
+      projectId: "truesocial-94e80",
+      storageBucket: "truesocial-94e80.firebasestorage.app",
+      messagingSenderId: "993255311929",
+      appId: "1:993255311929:web:539d116fda9911960d5be8",
+      measurementId: "G-Y2YQ6DJJGS"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // Utils
+    const errEl = document.getElementById('err');
+    function showErr(msg){
+      errEl.style.display='block'; errEl.textContent=msg;
+      setTimeout(()=>{ errEl.style.display='none' },4000);
+    }
+
+    // Login
+    document.getElementById('loginBtn').addEventListener('click', async ()=>{
+      const email = document.getElementById('email').value.trim();
+      const pw = document.getElementById('password').value;
+      if(!email || !pw){ showErr('Enter email and password'); return; }
+      try{
+        await auth.signInWithEmailAndPassword(email,pw);
+        // go home
+        location.href = 'index.html';
+      }catch(e){
+        showErr(e.message || 'Login failed');
+      }
+    });
+
+    // Sign up: creates auth user + user document with username default
+    document.getElementById('signupBtn').addEventListener('click', async ()=>{
+      const email = document.getElementById('email').value.trim();
+      const pw = document.getElementById('password').value;
+      if(!email || !pw){ showErr('Enter email and password'); return; }
+      try{
+        const cred = await auth.createUserWithEmailAndPassword(email,pw);
+        const user = cred.user;
+        // set default user doc
+        const username = email.split('@')[0];
+        await db.collection('users').doc(user.uid).set({
+          uid: user.uid,
+          email: user.email,
+          name: username,
+          username: username,
+          bio: '',
+          pfp: '', // storage URL later
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        // success -> go to profile to set pfp/name
+        location.href = 'profile.html';
+      }catch(e){
+        showErr(e.message || 'Signup failed');
+      }
+    });
+
+    // If user already authenticated, redirect to home
+    auth.onAuthStateChanged(user=>{
+      if(user){
+        // If on login page, go to index
+        // We only redirect if on login page.
+      }
+    });
+  </script>
+</body>
+</html>
