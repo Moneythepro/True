@@ -1,7 +1,3 @@
-<!--
-File: search.html
-Standalone search page (similar to quick-search but full page).
--->
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,17 +5,146 @@ Standalone search page (similar to quick-search but full page).
   <title>TrueSocial — Search</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    :root{--orange:#ff7a00;--muted:#6b6b6b}
-    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:0;background:#f3f3f3}
-    .app{max-width:420px;margin:18px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid rgba(0,0,0,.04)}
-    .header{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid rgba(0,0,0,.04);background:#fff}
-    .dot{width:44px;height:44px;border-radius:10px;background:var(--orange);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
-    .container{padding:14px}
-    .input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,.06)}
-    .result{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.03);margin-top:10px}
-    .pfp{width:56px;height:56px;border-radius:12px;object-fit:cover}
-    .btn{padding:8px 10px;border-radius:10px;border:0;background:var(--orange);color:#fff;cursor:pointer}
-    .small{color:var(--muted);font-size:13px}
+    :root {
+      --orange: #ff7a00;
+      --muted: #6b6b6b;
+      --bg: #f7f7f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Inter", system-ui, Segoe UI, Roboto, Arial;
+      margin: 0;
+      background: var(--bg);
+      color: #111;
+    }
+    .app {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px 16px 0 0;
+      border: 1px solid rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(0,0,0,.06);
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .dot {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--orange);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+    }
+    .header .small { color: var(--muted); font-size: 13px; }
+    .header button {
+      margin-left: auto;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    /* SEARCH */
+    .container { padding: 16px; flex: 1; overflow-y: auto; }
+    .input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,.1);
+      outline: none;
+      font-size: 15px;
+    }
+    .result {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.05);
+      background: #fff;
+      margin-top: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      transition: background 0.2s;
+    }
+    .result:hover { background: #fff8f3; }
+    .pfp {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .btn {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: none;
+      background: var(--orange);
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--orange);
+      color: var(--orange);
+    }
+
+    /* FOOTER NAV */
+    .nav {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      border-top: 1px solid rgba(0,0,0,.06);
+      background: #fff;
+    }
+    .nav-item {
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .nav-item.active {
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    /* MODAL PROFILE */
+    .overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      width: 90%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: pop 0.2s ease;
+    }
+    @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   </style>
 </head>
 <body>
@@ -30,21 +155,22 @@ Standalone search page (similar to quick-search but full page).
         <div style="font-weight:800">TrueSocial</div>
         <div class="small">Search</div>
       </div>
-      <button style="margin-left:auto;border:0;background:transparent;cursor:pointer" onclick="location.href='index.html'">🏠</button>
+      <button onclick="location.href='index.html'">🏠</button>
     </div>
 
     <div class="container">
-      <input id="q" class="input" placeholder="Search by name or username" />
+      <input id="q" class="input" placeholder="Search by name or username..." />
       <div id="results"></div>
     </div>
 
-    <div style="padding:12px;border-top:1px solid rgba(0,0,0,.04);display:flex;justify-content:space-around">
-      <div onclick="location.href='index.html'" class="small">💬 Chats</div>
-      <div class="small" style="color:var(--orange)">🔎 Search</div>
-      <div onclick="location.href='profile.html'" class="small">👤 Profile</div>
+    <div class="nav">
+      <div class="nav-item" onclick="location.href='index.html'">💬 Chats</div>
+      <div class="nav-item active">🔎 Search</div>
+      <div class="nav-item" onclick="location.href='profile.html'">👤 Profile</div>
     </div>
   </div>
 
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -66,55 +192,89 @@ Standalone search page (similar to quick-search but full page).
     const qInp = document.getElementById('q');
     const results = document.getElementById('results');
 
-    auth.onAuthStateChanged(user=>{
-      if(!user) location.href='login.html';
+    auth.onAuthStateChanged(user => {
+      if (!user) location.href = 'login.html';
     });
 
-    qInp.addEventListener('input', async ()=>{
-      const q = qInp.value.trim().toLowerCase();
+    qInp.addEventListener('input', async () => {
+      const query = qInp.value.trim().toLowerCase();
       results.innerHTML = '';
-      if(!q) return;
-      // fetch a small sample and filter client-side (v1)
-      const snap = await db.collection('users').limit(100).get();
-      const arr = snap.docs.map(d=>d.data()).filter(u => (u.name||'').toLowerCase().includes(q) || (u.username||'').toLowerCase().includes(q));
-      if(!arr.length) { results.innerHTML = '<div class="small">No results</div>'; return; }
-      arr.forEach(u=>{
+      if (!query) return;
+
+      const snap = await db.collection('users').orderBy('username').limit(100).get();
+      const filtered = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(u => (u.name || '').toLowerCase().includes(query) || (u.username || '').toLowerCase().includes(query));
+
+      if (!filtered.length) {
+        results.innerHTML = '<div class="small" style="margin-top:10px;text-align:center">No users found</div>';
+        return;
+      }
+
+      filtered.forEach(u => {
         const node = document.createElement('div');
         node.className = 'result';
-        node.innerHTML = `<img class="pfp" src="${u.pfp||'https://picsum.photos/seed/'+u.uid+'/80'}" />
+        node.innerHTML = `
+          <img class="pfp" src="${u.pfp || 'https://picsum.photos/seed/'+u.id+'/80'}">
           <div style="flex:1">
-            <div style="font-weight:800">${u.name}</div>
-            <div class="small">@${u.username||''}</div>
+            <div style="font-weight:600">${u.name || 'Unnamed'}</div>
+            <div class="small">@${u.username || 'unknown'}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px">
-            <button class="btn" data-uid="${u.uid}">View</button>
-            <button class="btn secondary" data-req="${u.uid}" style="background:transparent;color:var(--orange);border:1px solid rgba(255,122,0,.12)">Request</button>
-          </div>`;
-        // view opens quick small profile
-        node.querySelector('[data-uid]')?.addEventListener('click', ()=> openQuick(u));
-        node.querySelector('[data-req]')?.addEventListener('click', async ()=>{
-          const me = auth.currentUser; if(!me) return alert('Login required');
-          await db.collection('friendRequests').add({ from: me.uid, to: u.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-          alert('Friend request sent');
-        });
+            <button class="btn" data-view="${u.id}">View</button>
+            <button class="btn secondary" data-request="${u.id}">Add Friend</button>
+          </div>
+        `;
+        node.querySelector('[data-view]').addEventListener('click', () => openModal(u));
+        node.querySelector('[data-request]').addEventListener('click', () => sendFriendRequest(u));
         results.appendChild(node);
       });
     });
 
-    function openQuick(u){
-      const w = window.open('', 'profileQuick', 'width=380,height=360');
-      w.document.body.innerHTML = `<div style="font-family:Inter,system-ui;padding:12px">
-        <h3>${u.name}</h3><div class="small">@${u.username||''}</div>
-        <img src="${u.pfp||'https://picsum.photos/seed/'+u.uid+'/120'}" style="width:120px;height:120px;border-radius:12px;display:block;margin-top:12px"/>
-        <p style="margin-top:8px">${u.bio||''}</p>
-        <button id="req" style="padding:10px;background:${getComputedStyle(document.documentElement).getPropertyValue('--orange')||'#ff7a00'};color:#fff;border:0;border-radius:8px;cursor:pointer">Send Request</button>
-      </div>`;
-      w.document.getElementById('req').addEventListener('click', async ()=>{
-        const me = auth.currentUser;
-        if(!me){ alert('Login required'); w.close(); return; }
-        await db.collection('friendRequests').add({ from: me.uid, to: u.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        alert('Request sent'); w.close();
+    async function sendFriendRequest(targetUser) {
+      const me = auth.currentUser;
+      if (!me) return alert('Please log in first');
+
+      if (me.uid === targetUser.id) return alert('You cannot add yourself');
+
+      // Check if already friends or pending
+      const check = await db.collection('friend_requests')
+        .where('fromUid', '==', me.uid)
+        .where('toUid', '==', targetUser.id)
+        .get();
+
+      if (!check.empty) return alert('Friend request already sent!');
+
+      await db.collection('friend_requests').add({
+        fromUid: me.uid,
+        toUid: targetUser.id,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+
+      alert('Friend request sent ✅');
+    }
+
+    function openModal(user) {
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+      overlay.innerHTML = `
+        <div class="modal">
+          <img src="${user.pfp || 'https://picsum.photos/seed/'+user.id+'/120'}" style="width:120px;height:120px;border-radius:16px;object-fit:cover">
+          <h3 style="margin:10px 0 4px">${user.name || 'Unnamed'}</h3>
+          <div class="small">@${user.username || 'unknown'}</div>
+          <p style="margin-top:10px">${user.bio || 'No bio available'}</p>
+          <button class="btn" id="reqBtn">Send Friend Request</button>
+          <button class="btn secondary" id="closeBtn" style="margin-top:8px">Close</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('#closeBtn').addEventListener('click', () => overlay.remove());
+      overlay.querySelector('#reqBtn').addEventListener('click', async () => {
+        await sendFriendRequest(user);
+        overlay.remove();
+      });
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     }
   </script>
 </body>
